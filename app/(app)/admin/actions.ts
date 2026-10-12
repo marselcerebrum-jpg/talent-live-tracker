@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { addDays, isYmd, keISO } from "@/lib/time";
+import { toLoginEmail, validUsername } from "@/lib/username";
 
 function back(path: string, params: Record<string, string>): never {
   redirect(`${path}?${new URLSearchParams(params)}`);
@@ -126,13 +127,16 @@ export async function aturAktif(formData: FormData) {
 export async function buatAkun(formData: FormData) {
   await requireAdmin();
   const talentId = s(formData.get("talent_id"));
-  const email = s(formData.get("email")).toLowerCase();
+  const username = s(formData.get("username")).toLowerCase();
   const password = s(formData.get("password"));
-  if (!talentId || !email || password.length < 8) back("/admin/talent", { e: "Pilih talent, isi email, dan kata sandi minimal 8 karakter." });
+  if (!talentId || !validUsername(username) || password.length < 8) {
+    back("/admin/talent", { e: "Pilih talent, isi username 3–30 karakter (huruf kecil, angka, titik, strip), dan kata sandi minimal 8 karakter." });
+  }
+  const email = toLoginEmail(username);
 
   const admin = createServiceClient();
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
-  if (error || !data.user) back("/admin/talent", { e: `Gagal membuat akun: ${error?.message ?? "tidak diketahui"}` });
+  if (error || !data.user) back("/admin/talent", { e: /already|registered|exists/i.test(error?.message ?? "") ? `Username "${username}" sudah dipakai. Pilih yang lain.` : `Gagal membuat akun: ${error?.message ?? "tidak diketahui"}` });
   const { error: pErr } = await admin.from("profiles").insert({ id: data.user.id, role: "talent", talent_id: talentId });
   if (pErr) {
     await admin.auth.admin.deleteUser(data.user.id);
@@ -191,4 +195,45 @@ export async function perbaikiSesi(formData: FormData) {
   }
   revalidatePath("/admin/perlu-dicek");
   back("/admin/perlu-dicek", { ok: "beres" });
+}
+
+// ---------------------------------------------------------------- kode promo
+export async function simpanKode(formData: FormData) {
+  await requireAdmin();
+  const code = s(formData.get("code")).toUpperCase().replace(/\s+/g, "");
+  const talent = s(formData.get("talent_id"));
+  const account = s(formData.get("account_code"));
+  const from = s(formData.get("valid_from")) || null;
+  const to = s(formData.get("valid_to")) || null;
+  if (!code || !talent || !account) back("/admin/promo", { e: "Isi kode, talent, dan akun." });
+  const supabase = await createClient();
+  const { data: acc } = await supabase.from("live_accounts").select("centil_source_id").eq("code", account).maybeSingle();
+  if (!acc) back("/admin/promo", { e: "Akun tidak dikenal." });
+  const { error } = await supabase.from("promo_codes").upsert({
+    code, talent_id: talent, account_code: account, centil_source_id: acc.centil_source_id,
+    valid_from: from, valid_to: to, is_active: true,
+  }, { onConflict: "code" });
+  if (error) back("/admin/promo", { e: error.message });
+  revalidatePath("/admin/promo");
+  back("/admin/promo", { ok: "kode" });
+}
+
+export async function aturKode(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.from("promo_codes").update({ is_active: formData.get("active") === "1" }).eq("code", s(formData.get("code")));
+  revalidatePath("/admin/promo");
+  back("/admin/promo", { ok: "kode" });
+}
+
+export async function aturFitur(formData: FormData) {
+  await requireAdmin();
+  const key = s(formData.get("key"));
+  if (key !== "feature_promo") back("/admin", { e: "Fitur tidak dikenal." });
+  const on = formData.get("on") === "1";
+  const supabase = await createClient();
+  const { error } = await supabase.from("app_settings").update({ value: on }).eq("key", key);
+  if (error) back("/admin/promo", { e: error.message });
+  revalidatePath("/", "layout");
+  back("/admin/promo", { ok: on ? "fitur-on" : "fitur-off" });
 }

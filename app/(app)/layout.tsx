@@ -1,6 +1,8 @@
 import { getMe } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import { NavLinks, type NavItem } from "@/components/NavLinks";
+import { featureOn } from "@/lib/features";
+import { displayLogin } from "@/lib/username";
 
 const TALENT_NAV: NavItem[] = [
   { href: "/", label: "Hari ini" },
@@ -18,6 +20,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin/absensi", label: "Absensi tim" },
   { href: "/admin/live", label: "Data live tim" },
   { href: "/admin/performa", label: "Performa live" },
+  { href: "/admin/promo", label: "Kode promo" },
   { href: "/admin/talent", label: "Talent & akun" },
   { href: "/admin/perlu-dicek", label: "Perlu dicek" },
 ];
@@ -33,7 +36,9 @@ const ADMIN_TABS: NavItem[] = [
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await getMe();
   const isAdmin = me.role === "admin";
-  const who = me.nickname ?? me.email ?? "";
+  const promoOn = await featureOn("feature_promo");
+  const adminNav = ADMIN_NAV.filter((i) => promoOn || i.href !== "/admin/promo");
+  const who = me.nickname ?? displayLogin(me.email);
 
   return (
     <div className="shell">
@@ -41,7 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="brand"><span className="brand-dot" aria-hidden /> Talent Live</div>
         {isAdmin ? (
           <>
-            <NavLinks items={ADMIN_NAV} className="nav" />
+            <NavLinks items={adminNav} className="nav" />
             <div className="nav-group">Tampilan jadwal</div>
             <NavLinks items={[{ href: "/jadwal", label: "Kalender tim" }]} className="nav" />
           </>

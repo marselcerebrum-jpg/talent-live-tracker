@@ -13,6 +13,9 @@ const OK: Record<string, string> = {
   talent: "Data talent tersimpan.",
   beres: "Ditandai sudah dicek.",
   sandi: "Kata sandi diperbarui.",
+  kode: "Kode promo tersimpan.",
+  "fitur-on": "Fitur kode promo diaktifkan.",
+  "fitur-off": "Fitur kode promo dikunci.",
 };
 
 export function Notice({ ok, e }: { ok?: string; e?: string }) {

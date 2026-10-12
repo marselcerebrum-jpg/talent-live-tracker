@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
 
   let response = NextResponse.next({ request });
   const path = request.nextUrl.pathname;
-  if (path.startsWith("/auth/")) return response;
+  if (path.startsWith("/auth/") || path.startsWith("/api/")) return response; // API punya autentikasinya sendiri
 
   let user = null;
   try {

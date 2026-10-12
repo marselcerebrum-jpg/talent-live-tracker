@@ -1,4 +1,4 @@
-# Talent Live Tracker — aplikasi (Fase 1 + 2a)
+# Talent Live Tracker — aplikasi (Fase 1 + 2)
 
 Next.js 15 (App Router) + Supabase. Database: project `talent-live-tracker` (ref `qbunkjdkhuawbmzhklgs`).
 
@@ -20,6 +20,7 @@ Next.js 15 (App Router) + Supabase. Database: project `talent-live-tracker` (ref
 - **Absensi tim**: filter per talent dan status, plus koreksi manual dengan alasan.
 - **Data live tim**: rekap jam dan estimasi gaji per talent, daftar sesi, dan input atas nama talent.
 - **Performa live**: KPI bulanan, grafik tayangan per hari, peringkat per talent dan per akun (berdasarkan tayangan per jam), dan 10 sesi teratas. Bisa difilter per akun dan talent.
+- **Kode promo** (bisa dikunci lewat saklar `feature_promo` di `app_settings`; saat dikunci menu disembunyikan): sales per talent dan per kode untuk periode custom, grafik revenue harian, kelola kode (pemilik, aplikasi, masa berlaku).
 - **Talent & akun**: tambah talent, aktif/nonaktif, buat akun login, atur ulang sandi.
 - **Perlu dicek**: perbaiki sesi bermasalah dari impor spreadsheet.
 
@@ -49,6 +50,7 @@ Buat repo baru (private), lalu upload isi folder ini. Jangan sertakan `node_modu
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://qbunkjdkhuawbmzhklgs.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon / publishable key |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role / secret key |
+| `PROMO_INGEST_SECRET` | string acak panjang (Secret). Kunci untuk endpoint data kode promo |
 
 4. Klik **Deploy**.
 
@@ -69,4 +71,7 @@ npm run dev                  # http://localhost:3000
 ## Catatan teknis
 - Zona waktu tampilan dan input: WIB (Asia/Jakarta). Tersimpan sebagai `timestamptz`.
 - Gaji dihitung database (`v_session_pay`, `generate_payroll`). Halaman slip dan finalisasi periode masuk Fase 3.
-- Kode promo dari Centil masuk Fase 2, setelah template #110 disetujui.
+- Data kode promo masuk lewat `POST /api/promo/ingest` (header `Authorization: Bearer <PROMO_INGEST_SECRET>`).
+  Isinya baris hasil template Centil `promo-code-sales-daily-range`: `centil_source_id` (atau `_source_id`), `sale_date`,
+  `promo_code`, `trx_success`, `buyers_unique`, `revenue_idr`. Upsert per sumber + kode + tanggal, jadi kirim ulang aman.
+  Setiap kiriman tercatat di tabel `sync_runs` dan tampil sebagai "Sinkronisasi terakhir" di halaman Kode promo.

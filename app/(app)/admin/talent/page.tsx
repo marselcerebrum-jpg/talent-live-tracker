@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Notice } from "@/components/Notice";
 import { aturAktif, buatAkun, resetSandi, simpanTalent } from "../actions";
+import { displayLogin } from "@/lib/username";
 
 export default async function AdminTalent({ searchParams }: { searchParams: Promise<{ ok?: string; e?: string }> }) {
   await requireAdmin();
@@ -23,7 +24,7 @@ export default async function AdminTalent({ searchParams }: { searchParams: Prom
 
       <section className="panel">
         <div className="table-wrap"><table>
-          <thead><tr><th>Talent</th><th>WhatsApp</th><th>Kode promo</th><th>Akun login</th><th /></tr></thead>
+          <thead><tr><th>Talent</th><th>WhatsApp</th><th>Kode promo</th><th>Username login</th><th /></tr></thead>
           <tbody>{(talents ?? []).map((t) => (
             <tr key={t.id} style={t.is_active ? undefined : { opacity: 0.55 }}>
               <td><strong>{t.nickname}</strong><div className="small muted">{t.full_name}{t.is_active ? "" : " (tidak aktif)"}</div></td>
@@ -32,7 +33,7 @@ export default async function AdminTalent({ searchParams }: { searchParams: Prom
               <td className="small">
                 {account.has(t.id) ? (
                   <details>
-                    <summary style={{ cursor: "pointer" }}>{t.email ?? "Ada"}</summary>
+                    <summary style={{ cursor: "pointer" }}>{displayLogin(t.email)}</summary>
                     <form action={resetSandi} className="row" style={{ marginTop: 6 }}>
                       <input type="hidden" name="user_id" value={account.get(t.id)} />
                       <input name="password" type="text" minLength={8} placeholder="Sandi baru" aria-label="Sandi baru" style={{ width: 150 }} />
@@ -55,7 +56,7 @@ export default async function AdminTalent({ searchParams }: { searchParams: Prom
       <div className="grid-2" style={{ marginTop: 16, alignItems: "start" }}>
         <section className="panel">
           <h2 style={{ marginBottom: 6 }}>Buat akun login talent</h2>
-          <p className="small muted" style={{ marginBottom: 14 }}>Kirimkan email dan kata sandi ke talent lewat WhatsApp. Talent bisa menggantinya sendiri setelah masuk.</p>
+          <p className="small muted" style={{ marginBottom: 14 }}>Talent login dengan username dan kata sandi ini, tanpa email. Kirimkan lewat WhatsApp; talent bisa mengganti kata sandinya sendiri setelah masuk.</p>
           {noAccount.length === 0 ? <p className="muted">Semua talent aktif sudah punya akun.</p> : (
             <form action={buatAkun} className="form">
               <div className="field">
@@ -65,7 +66,7 @@ export default async function AdminTalent({ searchParams }: { searchParams: Prom
                   {noAccount.map((t) => <option key={t.id} value={t.id}>{t.nickname}</option>)}
                 </select>
               </div>
-              <div className="field"><label htmlFor="email">Email</label><input id="email" name="email" type="email" required /></div>
+              <div className="field"><label htmlFor="username">Username</label><input id="username" name="username" required pattern="[a-z0-9][a-z0-9._\-]{2,29}" placeholder="contoh: ginta" autoCapitalize="none" spellCheck={false} /><span className="hint">Huruf kecil, angka, titik, atau strip. Paling mudah pakai nama panggilan.</span></div>
               <div className="field"><label htmlFor="password">Kata sandi awal</label><input id="password" name="password" type="text" minLength={8} required /></div>
               <div className="row"><button className="btn" type="submit">Buat akun</button></div>
             </form>

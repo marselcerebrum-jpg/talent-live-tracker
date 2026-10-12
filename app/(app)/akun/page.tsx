@@ -1,13 +1,14 @@
 import { getMe } from "@/lib/auth";
 import { Notice } from "@/components/Notice";
 import { gantiSandi } from "../actions";
+import { displayLogin } from "@/lib/username";
 
 export default async function AkunPage({ searchParams }: { searchParams: Promise<{ ok?: string; e?: string }> }) {
   const me = await getMe();
   const sp = await searchParams;
   return (
     <>
-      <div className="page-head"><div><h1>Akun</h1><p>{me.email}</p></div></div>
+      <div className="page-head"><div><h1>Akun</h1><p>Username: {displayLogin(me.email)}</p></div></div>
       <Notice ok={sp.ok} e={sp.e} />
       <section className="panel" style={{ maxWidth: 460 }}>
         <h2 style={{ marginBottom: 14 }}>Ganti kata sandi</h2>

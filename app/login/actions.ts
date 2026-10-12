@@ -2,11 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { toLoginEmail } from "@/lib/username";
 
 export async function login(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const email = toLoginEmail(String(formData.get("email") ?? ""));
   const password = String(formData.get("password") ?? "");
-  if (!email || !password) redirect("/login?e=kosong");
+  if (!email.split("@")[0] || !password) redirect("/login?e=kosong");
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) redirect("/login?e=gagal");

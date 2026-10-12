@@ -6,6 +6,9 @@ import { jam, menitKeJam, tanggalPendek } from "@/lib/time";
 import { aggregate, daily, delta, fmtNum, groupBy, type PerfRow } from "@/lib/perf";
 import { monthRange } from "@/components/AttendanceTable";
 import { BarChart } from "@/components/Chart";
+import { attribute, sumBy, type PromoCode, type PromoDaily } from "@/lib/promo";
+import { rupiah } from "@/lib/time";
+import { featureOn } from "@/lib/features";
 
 type Bench = { account_code: string; sesi: number; talent_count: number; avg_views: number | null; avg_peak: number | null; avg_watch: number | null; views_per_hour: number | null };
 
@@ -21,14 +24,18 @@ export default async function PerformaSaya({ searchParams }: { searchParams: Pro
   const { m } = await searchParams;
   const r = monthRange(m);
   const supabase = await createClient();
-  const [{ data }, { data: bench }, { data: accounts }] = await Promise.all([
+  const [{ data }, { data: bench }, { data: accounts }, { data: myCodes }, { data: promoDaily }] = await Promise.all([
     supabase.from("live_sessions")
       .select("id, talent_id, account_code, platform, session_date, started_at, duration_minutes, total_views, unique_viewers, peak_concurrent, avg_watch_seconds, active_viewers, topic")
       .eq("talent_id", me.talentId!).gte("session_date", r.start).lte("session_date", r.end),
     supabase.rpc("team_live_benchmark", { p_start: r.start, p_end: r.end }),
     supabase.from("live_accounts").select("code, name"),
+    supabase.from("promo_codes").select("code, talent_id, account_code, centil_source_id, valid_from, valid_to, is_active").eq("talent_id", me.talentId!),
+    supabase.from("promo_sales_daily").select("centil_source_id, code, sale_date, trx_success, buyers_unique, revenue_idr").gte("sale_date", r.start).lte("sale_date", r.end),
   ]);
   const rows = (data ?? []) as PerfRow[];
+  const promoOn = await featureOn("feature_promo");
+  const promo = sumBy(attribute((promoDaily ?? []) as PromoDaily[], (myCodes ?? []) as PromoCode[]), (x) => x.code);
   const acc = new Map((accounts ?? []).map((a) => [a.code, a.name]));
   const team = new Map(((bench ?? []) as Bench[]).map((b) => [b.account_code, b]));
   const mine = aggregate("me", rows);
@@ -99,6 +106,16 @@ export default async function PerformaSaya({ searchParams }: { searchParams: Pro
           </section>
         </>
       )}
+      {promoOn && <section className="panel" style={{ marginTop: 16 }}>
+        <h2 style={{ marginBottom: 6 }}>Kode promo kamu</h2>
+        <p className="small muted" style={{ marginBottom: 14 }}>{(myCodes ?? []).filter((c) => c.is_active).map((c) => c.code).join(", ") || "Belum ada kode promo."}</p>
+        {promo.length === 0 ? <p className="muted">Belum ada penjualan dari kode kamu di {r.label}, atau data dari Centil belum masuk.</p> : (
+          <div className="table-wrap"><table>
+            <thead><tr><th>Kode</th><th className="num">Transaksi</th><th className="num">Pembeli</th><th className="num key">Revenue</th></tr></thead>
+            <tbody>{promo.map((p) => <tr key={p.key}><td><strong>{p.key}</strong></td><td className="num">{fmtNum(p.trx)}</td><td className="num">{fmtNum(p.buyers)}</td><td className="num key">{rupiah(p.revenue)}</td></tr>)}</tbody>
+          </table></div>
+        )}
+      </section>}
     </>
   );
 }
