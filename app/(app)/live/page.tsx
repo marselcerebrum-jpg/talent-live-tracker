@@ -31,7 +31,7 @@ export default async function LivePage({ searchParams }: { searchParams: Promise
         <Link className="btn" href="/live/baru">Isi data live</Link>
       </div>
       <Notice ok={sp.ok} e={sp.e} />
-      <section className="panel">
+      <section className="panel flush">
         <SessionTable rows={rows} accName={new Map((accounts ?? []).map((a) => [a.code, a.name]))} />
       </section>
     </>

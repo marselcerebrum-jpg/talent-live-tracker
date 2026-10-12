@@ -1,4 +1,5 @@
 import { jam, menitKeJam, tanggalPendek } from "@/lib/time";
+import { Avatar } from "@/components/Avatar";
 
 export type AttRow = {
   slot_id: string; talent_id: string; account_code: string; slot_date: string; start_at: string; end_at: string;
@@ -13,47 +14,45 @@ export const STATUS_LABEL: Record<string, string> = {
 function keterangan(r: AttRow) {
   if (r.minutes_after_slot_start === null) return "";
   const m = r.minutes_after_slot_start;
-  if (m < 0) return `${-m} mnt sebelum slot dibuka`;
+  if (m < 0) return `${-m} mnt sebelum slot`;
   if (m === 0) return "tepat saat slot dibuka";
   return `${m} mnt setelah slot dibuka`;
 }
 
+/** Daftar absensi 2 baris: siapa/akun di atas, detail di bawah, status di kanan. */
 export function AttendanceTable({ rows, accName, nick, action }: {
   rows: AttRow[]; accName: Map<string, string>; nick?: Map<string, string>;
   action?: (r: AttRow) => React.ReactNode;
 }) {
-  if (!rows.length) return <div className="empty"><strong>Belum ada slot di periode ini</strong>Pilih periode lain.</div>;
+  if (!rows.length) return <div className="empty"><strong>Belum ada slot</strong>Tidak ada jadwal di periode ini.</div>;
   return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Tanggal</th>{nick && <th>Talent</th>}<th>Akun</th><th>Slot</th><th>Status</th>
-            <th>Jam absen</th><th>Keterangan</th><th className="num">Live</th>{action && <th />}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.slot_id}>
-              <td className="nw">{tanggalPendek(r.slot_date)}</td>
-              {nick && <td>{nick.get(r.talent_id) ?? "?"}</td>}
-              <td>{accName.get(r.account_code) ?? r.account_code}{r.is_event ? " (event)" : ""}</td>
-              <td className="nw">{jam(r.start_at)}–{jam(r.end_at)}</td>
-              <td>
-                <span className={`badge badge-${r.state}`}>{STATUS_LABEL[r.state] ?? r.state}</span>
-                {r.override_note && <div className="small muted">Dikoreksi: {r.override_note}</div>}
-              </td>
-              <td>
-                {r.jam_absen ?? "–"}
-                {r.check_in_source && <div className="small muted">{r.check_in_source === "aplikasi" ? "dari tombol absen" : "dari data live"}</div>}
-              </td>
-              <td className="small">{keterangan(r)}</td>
-              <td className="num">{r.live_minutes ? menitKeJam(r.live_minutes) : "–"}</td>
-              {action && <td>{action(r)}</td>}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="list">
+      {rows.map((r) => {
+        const akun = accName.get(r.account_code) ?? r.account_code;
+        const title = nick ? nick.get(r.talent_id) ?? "?" : akun;
+        const detail = [
+          nick ? akun : null,
+          `${tanggalPendek(r.slot_date)}, ${jam(r.start_at)}–${jam(r.end_at)}${r.is_event ? " (event)" : ""}`,
+          r.jam_absen ? `absen ${r.jam_absen} ${r.check_in_source === "aplikasi" ? "lewat tombol" : "dari data live"}` : null,
+        ].filter(Boolean).join(", ");
+        return (
+          <div key={r.slot_id} className="li">
+            <Avatar name={title} />
+            <div>
+              <div className="t">{title}</div>
+              <div className="s">{detail}</div>
+              {(keterangan(r) || r.override_note) && (
+                <div className="s">{keterangan(r)}{r.override_note ? `${keterangan(r) ? ". " : ""}Dikoreksi: ${r.override_note}` : ""}</div>
+              )}
+            </div>
+            <div className="r">
+              <span className={`badge badge-${r.state}`}>{STATUS_LABEL[r.state] ?? r.state}</span>
+              {r.live_minutes > 0 && <span className="s">{menitKeJam(r.live_minutes)} live</span>}
+            </div>
+            {action && action(r)}
+          </div>
+        );
+      })}
     </div>
   );
 }

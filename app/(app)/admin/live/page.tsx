@@ -67,7 +67,7 @@ export default async function AdminLive({ searchParams }: { searchParams: Promis
         </select>
         <button className="btn btn-ghost btn-sm" type="submit">Terapkan</button>
       </form>
-      <section className="panel">
+      <section className="panel flush">
         <SessionTable rows={rows} accName={new Map((accounts ?? []).map((a) => [a.code, a.name]))} nick={nick} />
       </section>
     </>

@@ -49,8 +49,9 @@ export function LiveForm({ accounts, talents, from }: { accounts: Opt[]; talents
         </div>
       </fieldset>
 
+      <details className="more" open>
+        <summary>Statistik TikTok</summary>
       <fieldset>
-        <legend>Statistik TikTok</legend>
         <div className="form-grid">
           {[
             ["total_views", "Total tayangan"],
@@ -68,8 +69,10 @@ export function LiveForm({ accounts, talents, from }: { accounts: Opt[]; talents
         </div>
       </fieldset>
 
+      </details>
+      <details className="more">
+        <summary>Statistik Instagram (kalau live di IG)</summary>
       <fieldset>
-        <legend>Statistik Instagram (jika live di IG)</legend>
         <div className="form-grid">
           {[
             ["ig_reach", "Jangkauan"],
@@ -84,6 +87,7 @@ export function LiveForm({ accounts, talents, from }: { accounts: Opt[]; talents
         </div>
       </fieldset>
 
+      </details>
       <div className="field">
         <label htmlFor="topic">Materi</label>
         <input id="topic" name="topic" placeholder="Contoh: Bahas latihan soal TWK" />

@@ -41,7 +41,7 @@ export default async function AbsensiPage({ searchParams }: { searchParams: Prom
           <div className="stat"><strong>{rupiah(amount)}</strong><span>Estimasi gaji (belum final)</span></div>
         </div>
       </section>
-      <section className="panel">
+      <section className="panel flush">
         <AttendanceTable rows={rows} accName={new Map((accounts ?? []).map((a) => [a.code, a.name]))} />
       </section>
     </>

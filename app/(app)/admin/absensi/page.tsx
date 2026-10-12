@@ -43,22 +43,22 @@ export default async function AdminAbsensi({ searchParams }: { searchParams: Pro
         </select>
         <button className="btn btn-ghost btn-sm" type="submit">Terapkan</button>
       </form>
-      <section className="panel">
+      <section className="panel flush">
         <AttendanceTable
           rows={rows}
           accName={new Map((accounts ?? []).map((a) => [a.code, a.name]))}
           nick={new Map((talents ?? []).map((t) => [t.id, t.nickname]))}
           action={(row) => (
             <details>
-              <summary className="small" style={{ cursor: "pointer" }}>Koreksi</summary>
-              <form action={koreksiAbsensi} className="form" style={{ marginTop: 8, minWidth: 220 }}>
+              <summary className="small">Koreksi status</summary>
+              <form action={koreksiAbsensi} className="row" style={{ marginTop: 8 }}>
                 <input type="hidden" name="slot_id" value={row.slot_id} />
                 <input type="hidden" name="ret" value={ret} />
-                <select name="state" defaultValue={row.override_note ? row.state : "hadir"} aria-label="Status baru">
+                <select name="state" defaultValue={row.override_note ? row.state : "hadir"} aria-label="Status baru" style={{ width: "auto" }}>
                   <option value="hadir">Hadir</option><option value="izin">Izin</option><option value="alpha">Tidak hadir</option>
                   <option value="otomatis">Kembalikan ke otomatis</option>
                 </select>
-                <input name="note" placeholder="Alasan koreksi" aria-label="Alasan koreksi" />
+                <input name="note" placeholder="Alasan koreksi" aria-label="Alasan koreksi" style={{ flex: 1, minWidth: 160 }} />
                 <button className="btn btn-sm" type="submit">Simpan koreksi</button>
               </form>
             </details>

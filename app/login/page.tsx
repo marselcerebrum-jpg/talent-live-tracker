@@ -11,7 +11,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="login">
       <div className="login-card">
-        <div className="brand"><span className="brand-dot" aria-hidden /> Talent Live Tracker</div>
+        <div className="brand"><span className="brand-name"><span className="brand-dot" aria-hidden />Talent Live</span></div>
         <h1>Masuk</h1>
         <p className="muted" style={{ marginBottom: 22 }}>Pakai akun yang dibuatkan admin.</p>
         {e && PESAN[e] && <div className="notice notice-bad" role="alert">{PESAN[e]}</div>}

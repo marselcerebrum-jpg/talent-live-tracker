@@ -1,4 +1,5 @@
 import { jam, menitKeJam, tanggalPendek } from "@/lib/time";
+import { Avatar } from "@/components/Avatar";
 
 export type SessionRow = {
   id: string; session_date: string; started_at: string | null; duration_minutes: number | null; account_code: string;
@@ -8,33 +9,29 @@ export type SessionRow = {
 
 const n = (v: number | null) => (v === null ? "–" : new Intl.NumberFormat("id-ID").format(v));
 
+/** Daftar sesi live 2 baris. */
 export function SessionTable({ rows, accName, nick }: { rows: SessionRow[]; accName: Map<string, string>; nick?: Map<string, string> }) {
-  if (!rows.length) return <div className="empty"><strong>Belum ada data live</strong>Data yang kamu simpan akan muncul di sini.</div>;
+  if (!rows.length) return <div className="empty"><strong>Belum ada data live</strong>Data yang disimpan akan muncul di sini.</div>;
   return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Tanggal</th>{nick && <th>Talent</th>}<th>Akun</th><th>Mulai</th><th className="num">Durasi</th>
-            <th className="num">Tayangan</th><th className="num">Penonton unik</th><th className="num">Puncak</th><th>Materi</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id}>
-              <td className="nw">{tanggalPendek(r.session_date)}{r.review_status === "needs_review" && <> <span className="badge badge-pending">Perlu dicek</span></>}</td>
-              {nick && <td>{r.talent_id ? nick.get(r.talent_id) ?? "?" : "–"}</td>}
-              <td>{accName.get(r.account_code) ?? r.account_code}{r.platform === "instagram" ? " (IG)" : ""}</td>
-              <td>{jam(r.started_at)}</td>
-              <td className="num">{r.duration_minutes ? menitKeJam(r.duration_minutes) : "–"}</td>
-              <td className="num">{n(r.total_views)}</td>
-              <td className="num">{n(r.unique_viewers)}</td>
-              <td className="num">{n(r.peak_concurrent)}</td>
-              <td className="small">{r.topic ?? ""}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="list">
+      {rows.map((r) => {
+        const akun = `${accName.get(r.account_code) ?? r.account_code}${r.platform === "instagram" ? " (IG)" : ""}`;
+        const title = nick ? (r.talent_id ? nick.get(r.talent_id) ?? "?" : "Tanpa talent") : akun;
+        const detail = [nick ? akun : null, `${tanggalPendek(r.session_date)}, mulai ${jam(r.started_at)}`, r.topic].filter(Boolean).join(", ");
+        return (
+          <div key={r.id} className="li">
+            <Avatar name={title} />
+            <div>
+              <div className="t">{title}{r.review_status === "needs_review" && <> <span className="badge badge-pending">Perlu dicek</span></>}</div>
+              <div className="s">{detail}</div>
+              <div className="s">{n(r.total_views)} tayangan, {n(r.unique_viewers)} penonton unik, puncak {n(r.peak_concurrent)}</div>
+            </div>
+            <div className="r">
+              <span className="badge">{r.duration_minutes ? menitKeJam(r.duration_minutes) : "–"}</span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

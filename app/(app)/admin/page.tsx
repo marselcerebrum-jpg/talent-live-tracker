@@ -23,7 +23,7 @@ export default async function AdminHome() {
 
   return (
     <>
-      <div className="page-head"><div><h1>Ringkasan</h1><p>{tanggalPendek(today)}</p></div></div>
+      <div className="page-head"><div><h1>Ringkasan</h1></div><span className="sticker">{tanggalPendek(today)}</span></div>
 
       <section className="panel">
         <div className="stats">
@@ -35,8 +35,8 @@ export default async function AdminHome() {
         </div>
       </section>
 
-      <section className="panel">
-        <div className="panel-head"><h2>Absensi hari ini</h2><Link className="small" href="/admin/absensi">Semua absensi</Link></div>
+      <section className="panel flush" style={{ marginTop: 22 }}>
+        <div className="band"><h2>Absensi hari ini</h2><Link href="/admin/absensi">Lihat semua</Link></div>
         <AttendanceTable
           rows={(att ?? []) as AttRow[]}
           accName={new Map((accounts ?? []).map((a) => [a.code, a.name]))}
