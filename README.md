@@ -1,4 +1,4 @@
-# Talent Live Tracker — aplikasi (Fase 1)
+# Talent Live Tracker — aplikasi (Fase 1 + 2a)
 
 Next.js 15 (App Router) + Supabase. Database: project `talent-live-tracker` (ref `qbunkjdkhuawbmzhklgs`).
 
@@ -10,6 +10,7 @@ Next.js 15 (App Router) + Supabase. Database: project `talent-live-tracker` (ref
 - **Data live**: form isi data setelah live (pengganti spreadsheet), plus riwayat 30 hari. Sesi otomatis terhubung ke slot jadwal.
 - **Absensi**: rekap per bulan berisi status, jam absen, keterangan, total jam live, dan estimasi gaji.
 - **Izin**: ajukan dan batalkan izin, lihat status serta catatan admin.
+- **Performa**: tayangan per jam, puncak penonton, dan median durasi tonton dibanding rata-rata tim per akun, grafik harian, serta 5 sesi terbaik.
 - **Akun**: ganti kata sandi.
 
 **Admin**
@@ -18,6 +19,7 @@ Next.js 15 (App Router) + Supabase. Database: project `talent-live-tracker` (ref
 - **Persetujuan izin**: setujui atau tolak dengan catatan.
 - **Absensi tim**: filter per talent dan status, plus koreksi manual dengan alasan.
 - **Data live tim**: rekap jam dan estimasi gaji per talent, daftar sesi, dan input atas nama talent.
+- **Performa live**: KPI bulanan, grafik tayangan per hari, peringkat per talent dan per akun (berdasarkan tayangan per jam), dan 10 sesi teratas. Bisa difilter per akun dan talent.
 - **Talent & akun**: tambah talent, aktif/nonaktif, buat akun login, atur ulang sandi.
 - **Perlu dicek**: perbaiki sesi bermasalah dari impor spreadsheet.
 

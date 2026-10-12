@@ -6,6 +6,7 @@ const TALENT_NAV: NavItem[] = [
   { href: "/", label: "Hari ini" },
   { href: "/jadwal", label: "Jadwal" },
   { href: "/live", label: "Data live" },
+  { href: "/performa", label: "Performa" },
   { href: "/absensi", label: "Absensi" },
   { href: "/izin", label: "Izin" },
 ];
@@ -16,6 +17,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin/izin", label: "Persetujuan izin" },
   { href: "/admin/absensi", label: "Absensi tim" },
   { href: "/admin/live", label: "Data live tim" },
+  { href: "/admin/performa", label: "Performa live" },
   { href: "/admin/talent", label: "Talent & akun" },
   { href: "/admin/perlu-dicek", label: "Perlu dicek" },
 ];
