@@ -370,3 +370,62 @@ export async function hapusPerubahan(formData: FormData) {
   revalidatePath("/admin/absensi");
   withMsg(ret, "ok", "hapus-perubahan");
 }
+
+// ---------------------------------------------------------------- cek tayangan ulang
+const RQ = "/admin/cek-ulang";
+async function markReviewed(supabase: Awaited<ReturnType<typeof createClient>>, key: string, kind: string, result: string, note: string | null) {
+  await supabase.from("replay_reviews").upsert({ item_key: key, kind, result, note });
+}
+
+export async function replaySesuai(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await markReviewed(supabase, s(formData.get("item_key")), s(formData.get("kind")), "sesuai", s(formData.get("note")) || null);
+  revalidatePath(RQ);
+  back(RQ, { ok: "replay-sesuai" });
+}
+
+export async function replayHapusSesi(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const id = s(formData.get("session_id"));
+  const { error } = await supabase.from("live_sessions").delete().eq("id", id);
+  if (error) back(RQ, { e: error.message });
+  await markReviewed(supabase, s(formData.get("item_key")), s(formData.get("kind")), "dihapus", s(formData.get("note")) || "Sesi dobel dihapus setelah cek tayangan ulang");
+  revalidatePath(RQ);
+  back(RQ, { ok: "replay-hapus" });
+}
+
+export async function replayPerbaiki(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const id = s(formData.get("session_id"));
+  const date = s(formData.get("session_date"));
+  const time = s(formData.get("start_time"));
+  const dur = Number(s(formData.get("duration_minutes")));
+  if (!isYmd(date) || !/^\d{2}:\d{2}$/.test(time) || !(dur > 0 && dur <= 600)) back(RQ, { e: "Isi tanggal, jam mulai, dan durasi 1–600 menit." });
+  const patch: Record<string, unknown> = {
+    session_date: date, started_at: keISO(date, time), duration_minutes: dur,
+    review_status: "ok", review_reasons: [], schedule_slot_id: null, // dicocokkan ulang oleh trigger
+  };
+  const talent = s(formData.get("talent_id"));
+  if (talent) { patch.talent_id = talent; patch.talent_source = "admin"; }
+  const { error } = await supabase.from("live_sessions").update(patch).eq("id", id);
+  if (error) back(RQ, { e: error.message });
+  await markReviewed(supabase, s(formData.get("item_key")), s(formData.get("kind")), "diperbaiki", s(formData.get("note")) || null);
+  revalidatePath(RQ);
+  back(RQ, { ok: "replay-perbaiki" });
+}
+
+export async function replayTidakHadir(formData: FormData) {
+  const me = await requireAdmin();
+  const supabase = await createClient();
+  const slot = s(formData.get("slot_id"));
+  await supabase.from("attendance_overrides").upsert({
+    slot_id: slot, state: "alpha", created_by: me.userId,
+    note: s(formData.get("note")) || "Tidak ditemukan di tayangan ulang",
+  });
+  await markReviewed(supabase, s(formData.get("item_key")), s(formData.get("kind")), "tidak_hadir", s(formData.get("note")) || null);
+  revalidatePath(RQ);
+  back(RQ, { ok: "replay-alpha" });
+}

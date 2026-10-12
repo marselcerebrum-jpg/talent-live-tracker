@@ -24,6 +24,7 @@ const ADMIN_HARIAN: NavItem[] = [
   { href: "/admin/jadwal", label: "Kelola jadwal" },
   { href: "/admin/izin", label: "Persetujuan izin" },
   { href: "/admin/absensi", label: "Absensi tim" },
+  { href: "/admin/cek-ulang", label: "Cek tayangan ulang" },
 ];
 const ADMIN_ANALISIS: NavItem[] = [
   { href: "/admin/live", label: "Data live tim" },

@@ -11,7 +11,8 @@ export default async function Lainnya() {
   const promoOn = await featureOn("feature_promo");
   const tiles: Tile[] = me.role === "admin"
     ? [
-        { href: "/admin/absensi", title: "Absensi tim", desc: "Rekap & koreksi" },
+        { href: "/admin/cek-ulang", title: "Cek tayangan ulang", desc: "Cocokkan dengan rekaman" },
+        { href: "/admin/absensi", title: "Absensi tim", desc: "Rekap & laporan" },
         { href: "/admin/live", title: "Data live tim", desc: "Sesi & jam live" },
         { href: "/admin/performa", title: "Performa", desc: "Tayangan & peringkat" },
         ...(promoOn ? [{ href: "/admin/promo", title: "Kode promo", desc: "Sales per talent" }] : []),

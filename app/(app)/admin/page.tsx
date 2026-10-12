@@ -10,7 +10,7 @@ export default async function AdminHome() {
   const today = hariIni();
   const r = monthRange();
   const supabase = await createClient();
-  const [{ data: att }, { count: pending }, { count: issues }, { count: review }, { data: pay }, { data: talents }, { data: accounts }, { data: changes }] = await Promise.all([
+  const [{ data: att }, { count: pending }, { count: issues }, { count: review }, { data: pay }, { data: talents }, { data: accounts }, { data: changes }, { count: replay }] = await Promise.all([
     supabase.from("v_attendance").select("*").eq("slot_date", today).order("start_at"),
     supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("import_issues").select("id", { count: "exact", head: true }).eq("resolved", false).neq("severity", "info"),
@@ -20,6 +20,7 @@ export default async function AdminHome() {
     supabase.from("live_accounts").select("code, name"),
     supabase.from("schedule_changes").select("*, slot:schedule_slots(account_code, talent_id)")
       .gte("created_at", `${today}T00:00:00+07:00`).order("created_at", { ascending: false }),
+    supabase.from("v_replay_queue").select("item_key", { count: "exact", head: true }),
   ]);
   const minutes = (pay ?? []).reduce((a, p) => a + (p.duration_minutes ?? 0), 0);
   const amount = (pay ?? []).reduce((a, p) => a + Number(p.amount ?? 0), 0);
@@ -32,7 +33,7 @@ export default async function AdminHome() {
         <div className="stats">
           <div className="stat"><strong>{(att ?? []).length}</strong><span>Slot live hari ini</span></div>
           <div className="stat"><strong>{pending ?? 0}</strong><span><Link href="/admin/izin">Izin menunggu</Link></span></div>
-          <div className="stat"><strong>{Math.max(issues ?? 0, review ?? 0)}</strong><span><Link href="/admin/perlu-dicek">Data perlu dicek</Link></span></div>
+          <div className="stat"><strong>{replay ?? 0}</strong><span><Link href="/admin/cek-ulang">Cek tayangan ulang</Link></span></div>
           <div className="stat"><strong>{menitKeJam(minutes)}</strong><span>Total live {r.label}</span></div>
           <div className="stat"><strong>{rupiah(amount)}</strong><span>Estimasi gaji {r.label}</span></div>
         </div>
