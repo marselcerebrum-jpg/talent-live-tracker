@@ -5,7 +5,8 @@ import { attribute, dateRange, sumBy, type PromoCode, type PromoDaily } from "@/
 import { fmtNum } from "@/lib/perf";
 import { BarChart } from "@/components/Chart";
 import { Notice } from "@/components/Notice";
-import { aturFitur, aturKode, simpanKode } from "../actions";
+import { aturFitur, aturKode, batalSinkron, mintaSinkron, simpanKode } from "../actions";
+import { addDays, hariIni } from "@/lib/time";
 import { featureOn } from "@/lib/features";
 
 export default async function AdminPromo({ searchParams }: { searchParams: Promise<{ from?: string; to?: string; ok?: string; e?: string }> }) {
@@ -39,6 +40,9 @@ export default async function AdminPromo({ searchParams }: { searchParams: Promi
     supabase.from("live_accounts").select("code, name").order("name"),
     supabase.from("sync_runs").select("finished_at, status, rows, error").eq("kind", "centil_promo").order("started_at", { ascending: false }).limit(1),
   ]);
+  const { data: requests } = await supabase.from("sync_requests")
+    .select("id, range_start, range_end, status, requested_at, finished_at, rows, note").order("requested_at", { ascending: false }).limit(5);
+  const active = (requests ?? []).find((q) => q.status === "pending" || q.status === "processing");
   const nick = new Map((talents ?? []).map((t) => [t.id, t.nickname]));
   const acc = new Map((accounts ?? []).map((a) => [a.code, a.name]));
   const rows = attribute((daily ?? []) as PromoDaily[], (codes ?? []) as PromoCode[]);
@@ -63,6 +67,48 @@ export default async function AdminPromo({ searchParams }: { searchParams: Promi
       </div>
       <Notice ok={sp.ok} e={sp.e} />
 
+      <section className="panel" style={{ marginBottom: 16 }}>
+        <div className="panel-head">
+          <h2>Sinkronisasi dari Centil</h2>
+          <span className="small muted">
+            {sync ? `Data terakhir masuk: ${tanggalPendek(sync.finished_at)} ${jam(sync.finished_at)}` : "Belum pernah sinkronisasi"}
+          </span>
+        </div>
+        {active ? (
+          <div className="row">
+            <span className="badge badge-pending">{active.status === "processing" ? "Sedang diproses" : "Menunggu Claude"}</span>
+            <span className="small">{tanggalPendek(active.range_start)} s.d. {tanggalPendek(active.range_end)}, diminta {jam(active.requested_at)}</span>
+            {active.status === "pending" && (
+              <form action={batalSinkron}><input type="hidden" name="id" value={active.id} /><button className="btn btn-ghost btn-sm" type="submit">Batalkan</button></form>
+            )}
+          </div>
+        ) : (
+          <form action={mintaSinkron} className="row">
+            <input type="hidden" name="from" value={r.start} /><input type="hidden" name="to" value={r.end} />
+            <label className="row small" style={{ gap: 6 }}>Dari <input type="date" name="sync_from" defaultValue={addDays(hariIni(), -6)} style={{ width: "auto" }} /></label>
+            <label className="row small" style={{ gap: 6 }}>Sampai <input type="date" name="sync_to" defaultValue={hariIni()} max={hariIni()} style={{ width: "auto" }} /></label>
+            <button className="btn" type="submit">Minta sinkronisasi</button>
+          </form>
+        )}
+        <p className="metric-note">
+          Aplikasi tidak mengakses Centil langsung. Setelah menekan tombol, ketik di chat Claude (project Talent Live): "proses sync kode promo Talent Live". Setelah Claude selesai, muat ulang halaman ini.
+        </p>
+        {(requests ?? []).length > 0 && (
+          <div className="table-wrap" style={{ marginTop: 10 }}><table>
+            <thead><tr><th>Diminta</th><th>Rentang</th><th>Status</th><th className="num">Baris</th><th>Catatan</th></tr></thead>
+            <tbody>{(requests ?? []).map((q) => (
+              <tr key={q.id}>
+                <td className="nw small">{tanggalPendek(q.requested_at)} {jam(q.requested_at)}</td>
+                <td className="nw small">{q.range_start} s.d. {q.range_end}</td>
+                <td><span className={`badge ${q.status === "done" ? "badge-approved" : q.status === "failed" ? "badge-rejected" : "badge-pending"}`}>
+                  {({ pending: "Menunggu", processing: "Diproses", done: "Selesai", failed: "Gagal" } as Record<string, string>)[q.status]}</span></td>
+                <td className="num">{q.rows ?? "–"}</td><td className="small">{q.note ?? ""}</td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        )}
+      </section>
+
       <form className="row" action="/admin/promo" style={{ marginBottom: 16 }}>
         <label className="row small" style={{ gap: 6 }}>Dari <input type="date" name="from" defaultValue={r.start} style={{ width: "auto" }} /></label>
         <label className="row small" style={{ gap: 6 }}>Sampai <input type="date" name="to" defaultValue={r.end} style={{ width: "auto" }} /></label>
@@ -70,9 +116,6 @@ export default async function AdminPromo({ searchParams }: { searchParams: Promi
         <span className="spacer" />
         <button className="btn btn-ghost btn-sm" type="submit" formAction={aturFitur} name="on" value="0">Kunci fitur</button>
         <input type="hidden" name="key" value="feature_promo" />
-        <span className="small muted">
-          {sync ? `Sinkronisasi terakhir: ${sync.status === "success" ? `${tanggalPendek(sync.finished_at)} ${jam(sync.finished_at)}, ${sync.rows} baris` : `gagal (${sync.error ?? "?"})`}` : "Belum pernah sinkronisasi"}
-        </span>
       </form>
 
       {noData ? (

@@ -237,3 +237,30 @@ export async function aturFitur(formData: FormData) {
   revalidatePath("/", "layout");
   back("/admin/promo", { ok: on ? "fitur-on" : "fitur-off" });
 }
+
+// ---------------------------------------------------------------- sinkronisasi kode promo (antrean untuk Claude)
+export async function mintaSinkron(formData: FormData) {
+  await requireAdmin();
+  const keep = { from: s(formData.get("from")), to: s(formData.get("to")) };
+  const start = s(formData.get("sync_from"));
+  const end = s(formData.get("sync_to"));
+  if (!isYmd(start) || !isYmd(end) || end < start) back("/admin/promo", { ...keep, e: "Rentang tanggal sinkronisasi tidak valid." });
+  const days = Math.round((Date.parse(end) - Date.parse(start)) / 86_400_000) + 1;
+  if (days > 62) back("/admin/promo", { ...keep, e: "Maksimal 62 hari per permintaan." });
+  const supabase = await createClient();
+  const { error } = await supabase.from("sync_requests").insert({ kind: "centil_promo", range_start: start, range_end: end });
+  if (error) {
+    back("/admin/promo", { ...keep, e: error.code === "23505" ? "Masih ada permintaan yang belum diproses. Tunggu sampai selesai." : error.message });
+  }
+  revalidatePath("/admin/promo");
+  back("/admin/promo", { ...keep, ok: "minta-sync" });
+}
+
+export async function batalSinkron(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.from("sync_requests").update({ status: "failed", finished_at: new Date().toISOString(), note: "Dibatalkan admin" })
+    .eq("id", Number(formData.get("id"))).eq("status", "pending");
+  revalidatePath("/admin/promo");
+  back("/admin/promo", { ok: "batal-sync" });
+}

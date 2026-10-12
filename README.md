@@ -20,7 +20,7 @@ Next.js 15 (App Router) + Supabase. Database: project `talent-live-tracker` (ref
 - **Absensi tim**: filter per talent dan status, plus koreksi manual dengan alasan.
 - **Data live tim**: rekap jam dan estimasi gaji per talent, daftar sesi, dan input atas nama talent.
 - **Performa live**: KPI bulanan, grafik tayangan per hari, peringkat per talent dan per akun (berdasarkan tayangan per jam), dan 10 sesi teratas. Bisa difilter per akun dan talent.
-- **Kode promo** (bisa dikunci lewat saklar `feature_promo` di `app_settings`; saat dikunci menu disembunyikan): sales per talent dan per kode untuk periode custom, grafik revenue harian, kelola kode (pemilik, aplikasi, masa berlaku).
+- **Kode promo** (bisa dikunci lewat saklar `feature_promo` di `app_settings`; saat dikunci menu disembunyikan): sales per talent dan per kode untuk periode custom, grafik revenue harian, kelola kode (pemilik, aplikasi, masa berlaku). Tombol **Minta sinkronisasi** diproses manual lewat chat Claude, lihat `docs/sync-kode-promo.md`.
 - **Talent & akun**: tambah talent, aktif/nonaktif, buat akun login, atur ulang sandi.
 - **Perlu dicek**: perbaiki sesi bermasalah dari impor spreadsheet.
 
@@ -50,7 +50,7 @@ Buat repo baru (private), lalu upload isi folder ini. Jangan sertakan `node_modu
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://qbunkjdkhuawbmzhklgs.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon / publishable key |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role / secret key |
-| `PROMO_INGEST_SECRET` | string acak panjang (Secret). Kunci untuk endpoint data kode promo |
+| `PROMO_INGEST_SECRET` | opsional. String acak panjang (Secret) untuk endpoint `/api/promo/ingest` |
 
 4. Klik **Deploy**.
 
