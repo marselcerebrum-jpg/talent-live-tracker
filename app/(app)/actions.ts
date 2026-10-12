@@ -154,3 +154,18 @@ export async function gantiSandi(formData: FormData) {
   if (error) back("/akun", { e: `Gagal: ${error.message}` });
   back("/akun", { ok: "sandi" });
 }
+
+// ---------------------------------------------------------------- absen di luar jadwal (dilaporkan talent)
+export async function absenLuarJadwal(formData: FormData) {
+  await getMe();
+  const kind = String(formData.get("kind") ?? "");
+  const slot = String(formData.get("slot_id") ?? "") || null;
+  const account = String(formData.get("account_code") ?? "") || null;
+  const note = String(formData.get("note") ?? "").trim() || null;
+  if (kind !== "tidak_sesuai" && !slot) back("/", { e: "Pilih slotnya dulu." });
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("absen_luar_jadwal", { p_kind: kind, p_slot_id: slot, p_account: account, p_note: note });
+  if (error) back("/", { e: error.message });
+  revalidatePath("/");
+  back("/", { ok: "luar-jadwal" });
+}

@@ -264,3 +264,109 @@ export async function batalSinkron(formData: FormData) {
   revalidatePath("/admin/promo");
   back("/admin/promo", { ok: "batal-sync" });
 }
+
+// ---------------------------------------------------------------- kesesuaian jadwal
+function withMsg(ret: string, key: "ok" | "e", v: string): never {
+  redirect(`${ret}${ret.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(v)}`);
+}
+
+/** Kosongkan tautan sesi live pada tanggal tsb supaya trigger mencocokkan ulang ke slot yang benar. */
+async function relink(supabase: Awaited<ReturnType<typeof createClient>>, talentIds: string[], dates: string[]) {
+  await supabase.from("live_sessions").update({ schedule_slot_id: null })
+    .in("talent_id", talentIds).in("session_date", dates);
+}
+
+export async function catatPerubahan(formData: FormData) {
+  const me = await requireAdmin();
+  const ret = s(formData.get("ret")) || "/admin/absensi";
+  const slotId = s(formData.get("slot_id"));
+  const kind = s(formData.get("kind"));
+  const note = s(formData.get("note")) || null;
+  const unauthorized = formData.get("unauthorized") === "on";
+  const supabase = await createClient();
+
+  const { data: slot } = await supabase.from("schedule_slots")
+    .select("id, talent_id, account_code, start_at, end_at, slot_date").eq("id", slotId).maybeSingle();
+  if (!slot) withMsg(ret, "e", "Slot tidak ditemukan.");
+  const { data: existing } = await supabase.from("schedule_changes").select("id").eq("slot_id", slotId).maybeSingle();
+  if (existing) withMsg(ret, "e", "Slot ini sudah punya catatan perubahan. Hapus catatan lama dulu.");
+
+  const base = {
+    slot_id: slotId, kind, original_talent_id: slot.talent_id, original_start_at: slot.start_at,
+    original_end_at: slot.end_at, note, created_by: me.userId,
+  };
+
+  if (kind === "tidak_sesuai") {
+    const t1 = s(formData.get("actual_start"));
+    const t2 = s(formData.get("actual_end"));
+    const status = s(formData.get("status"));
+    const { error } = await supabase.from("schedule_changes").insert({
+      ...base, unauthorized: true,
+      actual_start_at: /^\d{2}:\d{2}$/.test(t1) ? keISO(slot.slot_date, t1) : null,
+      actual_end_at: /^\d{2}:\d{2}$/.test(t2) ? keISO(slot.slot_date, t2) : null,
+    });
+    if (error) withMsg(ret, "e", error.message);
+    if (status === "hadir" || status === "alpha") {
+      await supabase.from("attendance_overrides").upsert({
+        slot_id: slotId, state: status, created_by: me.userId,
+        note: `Tidak sesuai jadwal${t1 ? `, masuk ${t1}${t2 ? `–${t2}` : ""}` : ""}${note ? `: ${note}` : ""}`,
+      });
+    }
+  } else if (kind === "tukar_shift") {
+    const newTalent = s(formData.get("new_talent_id"));
+    if (!newTalent || newTalent === slot.talent_id) withMsg(ret, "e", "Pilih talent pengganti yang berbeda.");
+    const { error: e1 } = await supabase.from("schedule_slots").update({ talent_id: newTalent }).eq("id", slotId);
+    if (e1) withMsg(ret, "e", e1.code === "23505" ? "Talent pengganti sudah punya slot yang sama persis." : e1.message);
+    const { error } = await supabase.from("schedule_changes").insert({ ...base, unauthorized, new_talent_id: newTalent });
+    if (error) {
+      await supabase.from("schedule_slots").update({ talent_id: slot.talent_id }).eq("id", slotId);
+      withMsg(ret, "e", error.message);
+    }
+    await supabase.from("attendance_overrides").delete().eq("slot_id", slotId);
+    await relink(supabase, [slot.talent_id, newTalent], [slot.slot_date]);
+  } else if (kind === "pindah_jadwal") {
+    const d = s(formData.get("new_date")) || slot.slot_date;
+    const t1 = s(formData.get("new_start"));
+    const t2 = s(formData.get("new_end"));
+    if (!isYmd(d) || !/^\d{2}:\d{2}$/.test(t1) || !/^\d{2}:\d{2}$/.test(t2)) withMsg(ret, "e", "Isi tanggal, jam mulai, dan jam selesai yang baru.");
+    const start = keISO(d, t1);
+    const end = keISO(t2 <= t1 ? addDays(d, 1) : d, t2);
+    const { error: e1 } = await supabase.from("schedule_slots").update({ start_at: start, end_at: end }).eq("id", slotId);
+    if (e1) withMsg(ret, "e", e1.code === "23505" ? "Sudah ada slot yang sama di waktu baru tersebut." : e1.message);
+    const { error } = await supabase.from("schedule_changes").insert({ ...base, unauthorized, new_start_at: start, new_end_at: end });
+    if (error) {
+      await supabase.from("schedule_slots").update({ start_at: slot.start_at, end_at: slot.end_at }).eq("id", slotId);
+      withMsg(ret, "e", error.message);
+    }
+    await supabase.from("attendance_overrides").delete().eq("slot_id", slotId);
+    await relink(supabase, [slot.talent_id], [...new Set([slot.slot_date, d])]);
+  } else {
+    withMsg(ret, "e", "Jenis perubahan tidak dikenal.");
+  }
+  revalidatePath("/admin/absensi");
+  withMsg(ret, "ok", "perubahan");
+}
+
+/** Hapus catatan & kembalikan slot ke jadwal semula. */
+export async function hapusPerubahan(formData: FormData) {
+  await requireAdmin();
+  const ret = s(formData.get("ret")) || "/admin/absensi";
+  const slotId = s(formData.get("slot_id"));
+  const supabase = await createClient();
+  const { data: c } = await supabase.from("schedule_changes").select("*").eq("slot_id", slotId).maybeSingle();
+  if (!c) withMsg(ret, "e", "Catatan tidak ditemukan.");
+  const { data: slot } = await supabase.from("schedule_slots").select("slot_date, talent_id").eq("id", slotId).maybeSingle();
+  if (c.kind === "tukar_shift" || c.kind === "pindah_jadwal") {
+    const { error } = await supabase.from("schedule_slots").update({
+      talent_id: c.original_talent_id, start_at: c.original_start_at, end_at: c.original_end_at,
+    }).eq("id", slotId);
+    if (error) withMsg(ret, "e", error.message);
+  }
+  if (c.kind === "tidak_sesuai") await supabase.from("attendance_overrides").delete().eq("slot_id", slotId);
+  await supabase.from("schedule_changes").delete().eq("slot_id", slotId);
+  const origDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(c.original_start_at));
+  await relink(supabase, [c.original_talent_id, c.new_talent_id, slot?.talent_id].filter(Boolean) as string[],
+    [...new Set([origDate, slot?.slot_date].filter(Boolean) as string[])]);
+  revalidatePath("/admin/absensi");
+  withMsg(ret, "ok", "hapus-perubahan");
+}

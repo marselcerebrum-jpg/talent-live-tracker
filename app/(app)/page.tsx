@@ -5,7 +5,7 @@ import { addDays, hariIni, jam, menitKeJam, rupiah, tanggalPendek } from "@/lib/
 import { Notice } from "@/components/Notice";
 import { Avatar } from "@/components/Avatar";
 import { monthRange } from "@/components/AttendanceTable";
-import { absen, selesaiLive } from "./actions";
+import { absen, absenLuarJadwal, selesaiLive } from "./actions";
 
 type Att = {
   slot_id: string; account_code: string; slot_date: string; start_at: string; end_at: string; is_event: boolean;
@@ -21,7 +21,7 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
   const r = monthRange();
   const supabase = await createClient();
 
-  const [{ data: rows }, { data: accounts }, { data: checkins }, { data: month }, { data: pay }] = await Promise.all([
+  const [{ data: rows }, { data: accounts }, { data: checkins }, { data: month }, { data: pay }, { data: teamToday }, { data: dir }, { data: myChanges }] = await Promise.all([
     supabase.from("v_attendance")
       .select("slot_id, account_code, slot_date, start_at, end_at, is_event, state, jam_absen, check_in_source, live_minutes, session_count")
       .eq("talent_id", me.talentId!).gte("slot_date", today).lte("slot_date", addDays(today, 6)).order("start_at"),
@@ -30,6 +30,9 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
       .gte("checked_in_at", `${addDays(today, -1)}T00:00:00+07:00`),
     supabase.from("v_attendance").select("state").eq("talent_id", me.talentId!).gte("slot_date", r.start).lte("slot_date", today),
     supabase.from("v_session_pay").select("duration_minutes, amount").eq("talent_id", me.talentId!).gte("session_date", r.start).lte("session_date", r.end),
+    supabase.from("schedule_slots").select("id, talent_id, account_code, start_at, end_at").eq("status", "scheduled").eq("slot_date", today).neq("talent_id", me.talentId!).order("start_at"),
+    supabase.from("v_talent_directory").select("id, nickname"),
+    supabase.from("schedule_changes").select("slot_id"),
   ]);
 
   const accName = (c: string) => (accounts ?? []).find((a) => a.code === c)?.name ?? c;
@@ -41,6 +44,13 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
   const rest = slots.filter((s) => s !== focus && new Date(s.end_at).getTime() >= now);
   const past = (month ?? []).filter((m) => m.state !== "terjadwal");
   const hadir = past.filter((m) => m.state === "hadir").length;
+  const nickOf = (id: string) => (dir ?? []).find((d) => d.id === id)?.nickname ?? "?";
+  const changed = new Set((myChanges ?? []).map((c) => c.slot_id));
+  const onAirAny = (checkins ?? []).some((c) => !c.checked_out_at);
+  const inWin = (s: { start_at: string; end_at: string }) => now >= new Date(s.start_at).getTime() - 3600_000 && now <= new Date(s.end_at).getTime();
+  const swapCands = (teamToday ?? []).filter(inWin);
+  const movable = slots.filter((s) => !inWin(s) && new Date(s.end_at).getTime() > now && !ci.has(s.slot_id) && !changed.has(s.slot_id));
+  const myTodayOpen = todays.find((s) => !ci.has(s.slot_id) && !changed.has(s.slot_id) && !inWin(s));
   const menit = (pay ?? []).reduce((a, p) => a + (p.duration_minutes ?? 0), 0);
   const gaji = (pay ?? []).reduce((a, p) => a + Number(p.amount ?? 0), 0);
 
@@ -103,6 +113,59 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
       </div>
       <Notice ok={sp.ok} e={sp.e} />
       {hero}
+
+      {!onAirAny && (
+        <details className="panel" style={{ marginTop: 4 }}>
+          <summary><strong style={{ fontFamily: "var(--disp)", fontSize: "1.1rem" }}>Absen di luar jadwal</strong> <span className="muted small">pilih alasannya, admin menerima laporan otomatis</span></summary>
+          <div className="change-forms">
+            <form action={absenLuarJadwal}>
+              <h4>Tukar shift: aku menggantikan talent lain</h4>
+              <input type="hidden" name="kind" value="tukar_shift" />
+              {swapCands.length === 0 ? <p className="small muted">Tidak ada slot talent lain yang sedang berjalan sekarang.</p> : (
+                <>
+                  <select name="slot_id" required defaultValue="" aria-label="Slot yang digantikan">
+                    <option value="" disabled>Pilih slot yang kamu gantikan</option>
+                    {swapCands.map((c) => <option key={c.id} value={c.id}>{accName(c.account_code)} {jam(c.start_at)}–{jam(c.end_at)}, jadwal {nickOf(c.talent_id)}</option>)}
+                  </select>
+                  <input name="note" placeholder="Keterangan, misalnya: diminta Nadya karena sakit" aria-label="Keterangan" />
+                  <button className="btn" type="submit">Absen sebagai pengganti</button>
+                </>
+              )}
+            </form>
+            <form action={absenLuarJadwal}>
+              <h4>Pindah jadwal: jadwalku dipindah ke sekarang</h4>
+              <input type="hidden" name="kind" value="pindah_jadwal" />
+              {movable.length === 0 ? <p className="small muted">Tidak ada jadwalmu yang bisa dipindah.</p> : (
+                <>
+                  <select name="slot_id" required defaultValue="" aria-label="Jadwal yang dipindah">
+                    <option value="" disabled>Pilih jadwal yang dipindah</option>
+                    {movable.map((m) => <option key={m.slot_id} value={m.slot_id}>{accName(m.account_code)}, {m.slot_date === today ? "hari ini" : tanggalPendek(m.slot_date)} {jam(m.start_at)}–{jam(m.end_at)}</option>)}
+                  </select>
+                  <input name="note" placeholder="Alasan pindah (opsional)" aria-label="Alasan" />
+                  <button className="btn" type="submit">Pindah ke sekarang & absen</button>
+                </>
+              )}
+            </form>
+            <form action={absenLuarJadwal}>
+              <h4>Tidak sesuai jadwal: aku live di luar jadwal</h4>
+              <input type="hidden" name="kind" value="tidak_sesuai" />
+              {myTodayOpen ? (
+                <>
+                  <input type="hidden" name="slot_id" value={myTodayOpen.slot_id} />
+                  <p className="small muted">Dicatat untuk jadwalmu hari ini: {accName(myTodayOpen.account_code)} {jam(myTodayOpen.start_at)}–{jam(myTodayOpen.end_at)}.</p>
+                </>
+              ) : (
+                <select name="account_code" required defaultValue="" aria-label="Akun live">
+                  <option value="" disabled>Live di akun apa?</option>
+                  {(accounts ?? []).map((a) => <option key={a.code} value={a.code}>{a.name}</option>)}
+                </select>
+              )}
+              <input name="note" required placeholder="Alasan (wajib), misalnya: jadwal malam bentrok kuliah" aria-label="Alasan" />
+              <button className="btn" type="submit">Absen di luar jadwal</button>
+            </form>
+          </div>
+        </details>
+      )}
 
       <div className="sect"><span>Berikutnya</span><a href="/jadwal">Kalender</a></div>
       <section className="panel flush">

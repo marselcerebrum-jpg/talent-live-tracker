@@ -1,5 +1,6 @@
 const OK: Record<string, string> = {
   absen: "Absen tercatat.",
+  "luar-jadwal": "Absen di luar jadwal tercatat dan dilaporkan ke admin.",
   selesai: "Absen selesai tercatat.",
   live: "Data live tersimpan.",
   izin: "Pengajuan izin terkirim. Admin akan meninjau.",
@@ -9,6 +10,8 @@ const OK: Record<string, string> = {
   setuju: "Izin disetujui.",
   tolak: "Izin ditolak.",
   koreksi: "Status absensi dikoreksi.",
+  perubahan: "Perubahan jadwal dicatat.",
+  "hapus-perubahan": "Catatan dihapus, slot kembali ke jadwal semula.",
   akun: "Akun talent dibuat.",
   talent: "Data talent tersimpan.",
   beres: "Ditandai sudah dicek.",

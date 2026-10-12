@@ -11,12 +11,13 @@ export default async function AbsensiPage({ searchParams }: { searchParams: Prom
   const { m } = await searchParams;
   const r = monthRange(m);
   const supabase = await createClient();
-  const [{ data }, { data: accounts }, { data: pay }] = await Promise.all([
+  const [{ data }, { data: accounts }, { data: pay }, { data: dir }] = await Promise.all([
     supabase.from("v_attendance").select("*").eq("talent_id", me.talentId!)
       .gte("slot_date", r.start).lte("slot_date", r.end).order("start_at", { ascending: false }),
     supabase.from("live_accounts").select("code, name"),
     supabase.from("v_session_pay").select("duration_minutes, amount").eq("talent_id", me.talentId!)
       .gte("session_date", r.start).lte("session_date", r.end),
+    supabase.from("v_talent_directory").select("id, nickname"),
   ]);
   const rows = (data ?? []) as AttRow[];
   const count = (s: string) => rows.filter((x) => x.state === s).length;
@@ -42,7 +43,7 @@ export default async function AbsensiPage({ searchParams }: { searchParams: Prom
         </div>
       </section>
       <section className="panel flush">
-        <AttendanceTable rows={rows} accName={new Map((accounts ?? []).map((a) => [a.code, a.name]))} />
+        <AttendanceTable rows={rows} accName={new Map((accounts ?? []).map((a) => [a.code, a.name]))} names={new Map((dir ?? []).map((t) => [t.id, t.nickname]))} />
       </section>
     </>
   );

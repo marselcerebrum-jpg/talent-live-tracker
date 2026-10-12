@@ -288,3 +288,17 @@ details.more[open] > summary { margin-bottom: 14px; }
 .login-card { width: 100%; max-width: 400px; background: var(--surface); border: var(--b); border-radius: var(--r-l); box-shadow: var(--sh-l); padding: 26px 24px 28px; }
 .login-card .brand { padding: 0 0 20px; }
 .login-card h1 { margin-bottom: 6px; }
+
+/* kesesuaian jadwal */
+.chg { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin-top: 6px; }
+.chg .s { font-size: 0.82rem; color: var(--muted); }
+.chg-tidak_sesuai { background: var(--pink); color: #fff; }
+.chg-tukar_shift { background: var(--sky); }
+.chg-pindah_jadwal { background: var(--yellow); }
+.chg-auto { background: var(--surface); border-style: dashed; color: var(--ink-2); }
+.change-forms { display: grid; gap: 12px; margin-top: 10px; }
+.change-forms form { display: grid; gap: 8px; padding: 12px; border: 2px dashed var(--line); border-radius: 14px; background: #faf8ff; }
+.change-forms h4 { margin: 0; font-family: var(--disp); font-weight: 800; font-size: 0.95rem; }
+.change-forms .row input, .change-forms .row select { width: auto; flex: 1; min-width: 120px; }
+.li > .act { grid-column: 2 / -1; display: grid; gap: 6px; }
+.viol { display: flex; flex-wrap: wrap; gap: 8px; }
