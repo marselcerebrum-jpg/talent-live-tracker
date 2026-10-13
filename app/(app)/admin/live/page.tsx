@@ -47,9 +47,9 @@ export default async function AdminLive({ searchParams }: { searchParams: Promis
       </div>
       <Notice ok={sp.ok} e={sp.e} />
       <section className="panel">
-        <div className="panel-head"><h2>Rekap per talent</h2><span className="small muted">Tarif saat ini {rupiah(hourly)}/jam, dihitung per menit</span></div>
+        <div className="panel-head"><h2>Rekap per talent</h2><span className="small muted">Tarif {rupiah(hourly)}/jam. Untuk periode 25–24 buka <a href="/admin/gaji">Estimasi gaji</a></span></div>
         <div className="table-wrap"><table>
-          <thead><tr><th>Talent</th><th className="num">Sesi</th><th className="num">Total live</th><th className="num">Estimasi gaji</th></tr></thead>
+          <thead><tr><th>Talent</th><th className="num">Sesi</th><th className="num">Total live</th><th className="num">Estimasi (bulan kalender)</th></tr></thead>
           <tbody>{rekap.map(([id, v]) => (
             <tr key={id}><td>{nick.get(id)}</td><td className="num">{v.sesi}</td><td className="num">{menitKeJam(v.menit)}</td><td className="num">{rupiah(Math.round((v.menit * hourly) / 60))}</td></tr>
           ))}</tbody>

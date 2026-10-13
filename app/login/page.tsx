@@ -26,6 +26,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
           <button className="btn" type="submit">Masuk</button>
         </form>
+        <p className="small" style={{ marginTop: 18 }}>
+          <a href="/lupa-sandi">Lupa kata sandi?</a> <span className="muted">Admin lewat email. Talent: minta admin mengatur ulang.</span>
+        </p>
       </div>
     </main>
   );

@@ -162,9 +162,11 @@ export async function absenLuarJadwal(formData: FormData) {
   const slot = String(formData.get("slot_id") ?? "") || null;
   const account = String(formData.get("account_code") ?? "") || null;
   const note = String(formData.get("note") ?? "").trim() || null;
+  const permitted = String(formData.get("permitted_by") ?? "").trim() || null;
   if (kind !== "tidak_sesuai" && !slot) back("/", { e: "Pilih slotnya dulu." });
+  if (kind !== "tidak_sesuai" && !permitted) back("/", { e: "Pilih sudah izin ke siapa." });
   const supabase = await createClient();
-  const { error } = await supabase.rpc("absen_luar_jadwal", { p_kind: kind, p_slot_id: slot, p_account: account, p_note: note });
+  const { error } = await supabase.rpc("absen_luar_jadwal", { p_kind: kind, p_slot_id: slot, p_account: account, p_note: note, p_permitted_by: permitted });
   if (error) back("/", { e: error.message });
   revalidatePath("/");
   back("/", { ok: "luar-jadwal" });

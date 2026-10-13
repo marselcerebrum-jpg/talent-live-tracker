@@ -48,6 +48,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const isLogin = path.startsWith("/login");
+  if (path.startsWith("/lupa-sandi")) return response; // halaman publik
   if (!user && !isLogin) {
     const u = request.nextUrl.clone();
     u.pathname = "/login";

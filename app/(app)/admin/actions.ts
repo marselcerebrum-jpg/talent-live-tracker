@@ -429,3 +429,39 @@ export async function replayTidakHadir(formData: FormData) {
   revalidatePath(RQ);
   back(RQ, { ok: "replay-alpha" });
 }
+
+// ---------------------------------------------------------------- kelola admin
+export async function tambahAdmin(formData: FormData) {
+  await requireAdmin();
+  const email = s(formData.get("email")).toLowerCase();
+  const password = s(formData.get("password"));
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) back("/admin/admin", { e: "Email tidak valid." });
+  if (email.endsWith("@live.cerebrum.id")) back("/admin/admin", { e: "Pakai email asli untuk admin, bukan format username talent." });
+  if (password.length < 8) back("/admin/admin", { e: "Kata sandi minimal 8 karakter." });
+  const admin = createServiceClient();
+  const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
+  if (error || !data.user) {
+    back("/admin/admin", { e: /already|registered|exists/i.test(error?.message ?? "") ? "Email ini sudah terdaftar." : `Gagal: ${error?.message ?? "tidak diketahui"}` });
+  }
+  const { error: pErr } = await admin.from("profiles").insert({ id: data.user.id, role: "admin" });
+  if (pErr) {
+    await admin.auth.admin.deleteUser(data.user.id);
+    back("/admin/admin", { e: pErr.message });
+  }
+  revalidatePath("/admin/admin");
+  back("/admin/admin", { ok: "admin-baru" });
+}
+
+export async function resetSandiAdmin(formData: FormData) {
+  const me = await requireAdmin();
+  const userId = s(formData.get("user_id"));
+  const password = s(formData.get("password"));
+  if (userId === me.userId) back("/admin/admin", { e: "Untuk akun sendiri, pakai menu Ganti sandi." });
+  if (password.length < 8) back("/admin/admin", { e: "Kata sandi minimal 8 karakter." });
+  const admin = createServiceClient();
+  const { data: prof } = await admin.from("profiles").select("role").eq("id", userId).maybeSingle();
+  if (prof?.role !== "admin") back("/admin/admin", { e: "Akun ini bukan admin." });
+  const { error } = await admin.auth.admin.updateUserById(userId, { password });
+  if (error) back("/admin/admin", { e: error.message });
+  back("/admin/admin", { ok: "sandi" });
+}

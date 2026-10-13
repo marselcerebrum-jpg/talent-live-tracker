@@ -20,6 +20,8 @@ const OK: Record<string, string> = {
   talent: "Data talent tersimpan.",
   beres: "Ditandai sudah dicek.",
   sandi: "Kata sandi diperbarui.",
+  "admin-baru": "Admin baru ditambahkan. Kirim email dan kata sandinya ke orang tersebut.",
+  "buat-sandi": "Link reset berhasil. Sekarang buat kata sandi baru di bawah ini.",
   kode: "Kode promo tersimpan.",
   "fitur-on": "Fitur kode promo diaktifkan.",
   "minta-sync": "Permintaan sinkronisasi tercatat. Sekarang ketik di chat Claude: proses sync kode promo Talent Live.",

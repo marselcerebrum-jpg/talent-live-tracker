@@ -1,9 +1,9 @@
 import { jam, tanggalPendek } from "@/lib/time";
 import { Avatar } from "@/components/Avatar";
-import { CHANGE_LABEL } from "@/components/AttendanceTable";
+import { CHANGE_LABEL, izinLabel } from "@/components/AttendanceTable";
 
 export type ChangeRow = {
-  id: number; kind: string; reported_by: string; note: string | null; unauthorized: boolean; created_at: string;
+  id: number; kind: string; reported_by: string; note: string | null; unauthorized: boolean; created_at: string; permitted_by: string | null;
   original_talent_id: string; new_talent_id: string | null;
   original_start_at: string; original_end_at: string; new_start_at: string | null; new_end_at: string | null;
   actual_start_at: string | null; slot: { account_code: string; talent_id: string } | null;
@@ -27,11 +27,13 @@ export function ChangeReport({ rows, nick, accName, empty }: { rows: ChangeRow[]
             <div>
               <div className="t">{who} <span className="s">{what}</span></div>
               {c.note && <div className="s">Alasan: {c.note}</div>}
-              <div className="s">Dilaporkan {c.reported_by === "talent" ? "talent" : "admin"}, {tanggalPendek(c.created_at)} {jam(c.created_at)}</div>
+              <div className="s">{c.reported_by === "data_live" ? "Disesuaikan otomatis dari data live" : `Dilaporkan ${c.reported_by === "talent" ? "talent" : "admin"}`}, {tanggalPendek(c.created_at)} {jam(c.created_at)}</div>
             </div>
             <div className="r">
               <span className={`badge chg-${c.kind}`}>{CHANGE_LABEL[c.kind]}</span>
-              {c.unauthorized && <span className="s">tanpa izin</span>}
+              {izinLabel(c.reported_by, c.permitted_by, c.unauthorized) && (
+                <span className={`badge ${c.unauthorized ? "badge-alpha" : "badge-hadir"}`}>{izinLabel(c.reported_by, c.permitted_by, c.unauthorized)}</span>
+              )}
             </div>
           </div>
         );

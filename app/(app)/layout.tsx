@@ -9,6 +9,7 @@ const TALENT_NAV: NavItem[] = [
   { href: "/jadwal", label: "Jadwal" },
   { href: "/live", label: "Data live" },
   { href: "/performa", label: "Performa" },
+  { href: "/gaji", label: "Estimasi gaji" },
   { href: "/absensi", label: "Absensi" },
   { href: "/izin", label: "Izin" },
 ];
@@ -27,12 +28,14 @@ const ADMIN_HARIAN: NavItem[] = [
   { href: "/admin/cek-ulang", label: "Cek tayangan ulang" },
 ];
 const ADMIN_ANALISIS: NavItem[] = [
+  { href: "/admin/gaji", label: "Estimasi gaji" },
   { href: "/admin/live", label: "Data live tim" },
   { href: "/admin/performa", label: "Performa live" },
   { href: "/admin/promo", label: "Kode promo" },
 ];
 const ADMIN_ATUR: NavItem[] = [
   { href: "/admin/talent", label: "Talent & akun" },
+  { href: "/admin/admin", label: "Kelola admin" },
   { href: "/admin/perlu-dicek", label: "Perlu dicek" },
   { href: "/jadwal", label: "Kalender tim" },
 ];

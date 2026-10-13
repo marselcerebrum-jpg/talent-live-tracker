@@ -4,18 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 import { hariIni, menitKeJam, rupiah, tanggalPendek } from "@/lib/time";
 import { AttendanceTable, monthRange, type AttRow } from "@/components/AttendanceTable";
 import { ChangeReport, type ChangeRow } from "@/components/ChangeReport";
+import { resolvePeriod } from "@/lib/period";
 
 export default async function AdminHome() {
   await requireAdmin();
   const today = hariIni();
   const r = monthRange();
+  const per = await resolvePeriod({});
   const supabase = await createClient();
   const [{ data: att }, { count: pending }, { count: issues }, { count: review }, { data: pay }, { data: talents }, { data: accounts }, { data: changes }, { count: replay }] = await Promise.all([
     supabase.from("v_attendance").select("*").eq("slot_date", today).order("start_at"),
     supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("import_issues").select("id", { count: "exact", head: true }).eq("resolved", false).neq("severity", "info"),
     supabase.from("live_sessions").select("id", { count: "exact", head: true }).eq("review_status", "needs_review"),
-    supabase.from("v_session_pay").select("duration_minutes, amount").gte("session_date", r.start).lte("session_date", r.end),
+    supabase.from("v_session_pay").select("duration_minutes, amount").gte("session_date", per.start).lte("session_date", per.end),
     supabase.from("talents").select("id, nickname"),
     supabase.from("live_accounts").select("code, name"),
     supabase.from("schedule_changes").select("*, slot:schedule_slots(account_code, talent_id)")
@@ -34,8 +36,8 @@ export default async function AdminHome() {
           <div className="stat"><strong>{(att ?? []).length}</strong><span>Slot live hari ini</span></div>
           <div className="stat"><strong>{pending ?? 0}</strong><span><Link href="/admin/izin">Izin menunggu</Link></span></div>
           <div className="stat"><strong>{replay ?? 0}</strong><span><Link href="/admin/cek-ulang">Cek tayangan ulang</Link></span></div>
-          <div className="stat"><strong>{menitKeJam(minutes)}</strong><span>Total live {r.label}</span></div>
-          <div className="stat"><strong>{rupiah(amount)}</strong><span>Estimasi gaji {r.label}</span></div>
+          <div className="stat"><strong>{menitKeJam(minutes)}</strong><span>Total live {per.label}</span></div>
+          <div className="stat"><strong>{rupiah(amount)}</strong><span><Link href="/admin/gaji">Estimasi gaji {per.label}</Link></span></div>
         </div>
       </section>
 

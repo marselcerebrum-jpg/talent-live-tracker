@@ -9,7 +9,15 @@ export type AttRow = {
   change_original_talent_id?: string | null; change_original_start_at?: string | null; change_original_end_at?: string | null;
   change_actual_start_at?: string | null; change_actual_end_at?: string | null;
   flag_live_di_jam_lain?: boolean | null; flag_diisi_talent_lain?: boolean | null;
+  change_permitted_by?: string | null; change_reported_by?: string | null;
 };
+
+export function izinLabel(reportedBy?: string | null, permittedBy?: string | null, unauthorized?: boolean | null) {
+  if (reportedBy === "data_live") return "disesuaikan dari data live";
+  if (permittedBy) return `izin ${permittedBy}`;
+  if (unauthorized) return "tanpa izin";
+  return "";
+}
 
 export const CHANGE_LABEL: Record<string, string> = {
   tidak_sesuai: "Tidak sesuai jadwal", tukar_shift: "Tukar shift", pindah_jadwal: "Pindah jadwal",
@@ -29,7 +37,10 @@ function ChangeInfo({ r, names }: { r: AttRow; names?: Map<string, string> }) {
     }
     return (
       <div className="chg">
-        <span className={`badge chg-${k}`}>{CHANGE_LABEL[k]}{r.change_unauthorized ? ", tanpa izin" : ""}</span>
+        <span className={`badge chg-${k}`}>{CHANGE_LABEL[k]}</span>
+        {izinLabel(r.change_reported_by, r.change_permitted_by, r.change_unauthorized) && (
+          <span className={`badge ${r.change_unauthorized ? "badge-alpha" : "badge-hadir"}`}>{izinLabel(r.change_reported_by, r.change_permitted_by, r.change_unauthorized)}</span>
+        )}
         {desc && <span className="s">{desc}</span>}
         {r.change_note && <span className="s">{r.change_note}</span>}
       </div>
