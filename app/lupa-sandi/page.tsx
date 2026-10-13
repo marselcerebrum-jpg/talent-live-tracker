@@ -4,7 +4,7 @@ import { kirimLinkReset } from "./actions";
 const PESAN: Record<string, string> = {
   talent: "Akun talent (username) tidak bisa reset lewat email. Minta admin mengatur ulang kata sandimu.",
   limit: "Terlalu banyak permintaan. Coba lagi beberapa menit lagi, atau minta admin lain mengatur ulang kata sandimu.",
-  link: "Link reset tidak valid atau sudah kedaluwarsa. Minta link baru.",
+  link: "Link reset tidak valid, sudah dipakai, atau kedaluwarsa (berlaku 1 jam, sekali pakai). Minta link baru di bawah.",
 };
 
 export default async function LupaSandi({ searchParams }: { searchParams: Promise<{ ok?: string; e?: string }> }) {
@@ -18,7 +18,7 @@ export default async function LupaSandi({ searchParams }: { searchParams: Promis
         {sp.e && PESAN[sp.e] && <div className="notice notice-bad" role="alert">{PESAN[sp.e]}</div>}
         {sp.ok ? (
           <div className="notice notice-ok" role="status">
-            Kalau email itu terdaftar sebagai admin, link reset sudah dikirim. Buka email, klik link-nya di browser yang sama, lalu buat kata sandi baru. Cek juga folder Spam.
+            Kalau email itu terdaftar sebagai admin, link reset sudah dikirim. Buka email (boleh dari HP), klik link-nya, lalu buat kata sandi baru. Link hanya bisa dipakai sekali. Cek juga folder Spam.
           </div>
         ) : (
           <form action={kirimLinkReset} className="form">
