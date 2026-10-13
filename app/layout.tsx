@@ -7,8 +7,8 @@ import "@fontsource/plus-jakarta-sans/700.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Talent Live Tracker",
-  description: "Jadwal, absensi, izin, dan data live talent Cerebrum.",
+  title: "Live Hub",
+  description: "Live Hub: jadwal, absensi, izin, gaji, dan performa talent live Cerebrum.",
   icons: { icon: "/icon.svg" },
 };
 

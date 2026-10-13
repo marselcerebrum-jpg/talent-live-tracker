@@ -1,4 +1,4 @@
-# Sync kode promo Talent Live Tracker (manual lewat chat Claude)
+# Sync kode promo Live Hub (manual lewat chat Claude)
 
 Aplikasi tidak mengakses Centil. Admin menekan **Minta sinkronisasi** di halaman Kode promo, lalu permintaan
 masuk ke tabel `sync_requests`. Claude memprosesnya lewat konektor **Supabase (Live Tracker)** dan **Centil**.
@@ -6,8 +6,8 @@ masuk ke tabel `sync_requests`. Claude memprosesnya lewat konektor **Supabase (L
 ## Cara pakai
 
 1. Di aplikasi, buka **Kode promo**, pilih rentang tanggal, lalu tekan **Minta sinkronisasi**.
-2. Buka chat Claude di project Talent Live (konektor **Supabase (Live Tracker)** dan **Centil** aktif), lalu ketik:
-   **proses sync kode promo Talent Live**
+2. Buka chat Claude di project Live Hub (konektor **Supabase (Live Tracker)** dan **Centil** aktif), lalu ketik:
+   **proses sync kode promo Live Hub**
 3. Setelah Claude melaporkan selesai, muat ulang halaman Kode promo.
 
 Simpan dokumen ini di **Project knowledge** supaya chat baru di project ini tahu langkah-langkahnya.
@@ -16,7 +16,7 @@ Kalau Claude belum tahu, tempel blok "Langkah untuk Claude" di bawah ke chat.
 ## Langkah untuk Claude
 
 ```
-Proses antrean sinkronisasi kode promo aplikasi Talent Live Tracker.
+Proses antrean sinkronisasi kode promo aplikasi Live Hub.
 Project Supabase: qbunkjdkhuawbmzhklgs (konektor "Supabase (Live Tracker)").
 
 1. Ambil satu permintaan dan kunci, dengan execute_sql:

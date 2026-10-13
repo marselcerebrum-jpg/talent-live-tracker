@@ -91,7 +91,7 @@ export default async function AdminPromo({ searchParams }: { searchParams: Promi
           </form>
         )}
         <p className="metric-note">
-          Aplikasi tidak mengakses Centil langsung. Setelah menekan tombol, ketik di chat Claude (project Talent Live): "proses sync kode promo Talent Live". Setelah Claude selesai, muat ulang halaman ini.
+          Aplikasi tidak mengakses Centil langsung. Setelah menekan tombol, ketik di chat Claude (project Live Hub): "proses sync kode promo Live Hub". Setelah Claude selesai, muat ulang halaman ini.
         </p>
         {(requests ?? []).length > 0 && (
           <div className="table-wrap" style={{ marginTop: 10 }}><table>

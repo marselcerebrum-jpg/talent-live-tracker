@@ -6,7 +6,7 @@ export default async function LupaSandi({ searchParams }: { searchParams: Promis
   return (
     <main className="login">
       <div className="login-card">
-        <div className="brand"><span className="brand-name"><span className="brand-dot" aria-hidden />Talent Live</span></div>
+        <div className="brand"><span className="brand-name"><span className="brand-dot" aria-hidden />Live Hub</span></div>
         <h1>Lupa kata sandi</h1>
         {sp.ok ? (
           <>

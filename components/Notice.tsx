@@ -25,7 +25,7 @@ const OK: Record<string, string> = {
   "reset-abaikan": "Permintaan diabaikan.",
   kode: "Kode promo tersimpan.",
   "fitur-on": "Fitur kode promo diaktifkan.",
-  "minta-sync": "Permintaan sinkronisasi tercatat. Sekarang ketik di chat Claude: proses sync kode promo Talent Live.",
+  "minta-sync": "Permintaan sinkronisasi tercatat. Sekarang ketik di chat Claude: proses sync kode promo Live Hub.",
   "batal-sync": "Permintaan sinkronisasi dibatalkan.",
   "fitur-off": "Fitur kode promo dikunci.",
 };

@@ -15,7 +15,7 @@ export async function mintaResetSandi(formData: FormData) {
     const site = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
     const status = await notifyAdmins(
       `Permintaan ubah kata sandi: ${name}`,
-      `<p><strong>${name.replace(/[<>&"]/g, "")}</strong> minta kata sandinya di Talent Live Tracker diubah.</p>
+      `<p><strong>${name.replace(/[<>&"]/g, "")}</strong> minta kata sandinya di Live Hub diubah.</p>
        <p><a href="${site}/admin">Buka aplikasi untuk membuat kata sandi baru</a></p>
        <p>Setelah diubah, kabari yang bersangkutan lewat WhatsApp.</p>`,
     );

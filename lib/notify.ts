@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
  * Kirim email pemberitahuan ke admin lewat Resend (https://resend.com), satu email per penerima
  * supaya satu penerima yang ditolak tidak menggagalkan yang lain.
  * Env: RESEND_API_KEY (wajib), ADMIN_NOTIFY_EMAILS (opsional, dipisah koma; default semua admin),
- *      RESEND_FROM (opsional, default "Talent Live <onboarding@resend.dev>").
+ *      RESEND_FROM (opsional, default "Live Hub <onboarding@resend.dev>").
  * Tidak melempar error. Mengembalikan ringkasan hasil untuk dicatat di database.
  */
 export async function notifyAdmins(subject: string, html: string): Promise<string> {
@@ -29,7 +29,7 @@ export async function notifyAdmins(subject: string, html: string): Promise<strin
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-        body: JSON.stringify({ from: process.env.RESEND_FROM || "Talent Live <onboarding@resend.dev>", to: [addr], subject, html }),
+        body: JSON.stringify({ from: process.env.RESEND_FROM || "Live Hub <onboarding@resend.dev>", to: [addr], subject, html }),
       });
       if (res.ok) return `${addr}: ok`;
       const body = await res.text();

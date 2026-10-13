@@ -1,6 +1,6 @@
-# Talent Live Tracker — aplikasi (Fase 1 + 2)
+# Live Hub — aplikasi talent live Cerebrum
 
-Next.js 15 (App Router) + Supabase. Database: project `talent-live-tracker` (ref `qbunkjdkhuawbmzhklgs`).
+Next.js 15 (App Router) + Supabase. Database: project Supabase `talent-live-tracker` (ref `qbunkjdkhuawbmzhklgs`). Nama project di Supabase, Vercel, dan GitHub masih `talent-live-tracker`; itu nama teknis dan tidak mempengaruhi tampilan aplikasi.
 
 ## Fitur Fase 1
 

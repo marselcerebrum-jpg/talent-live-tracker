@@ -56,7 +56,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="shell">
       <aside className="side">
-        <div className="brand"><span className="brand-name"><span className="brand-dot" aria-hidden />Talent Live</span></div>
+        <div className="brand"><span className="brand-name"><span className="brand-dot" aria-hidden />Live Hub</span></div>
         {isAdmin ? (
           <>
             <div className="nav-group">Harian</div>
@@ -81,7 +81,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       <main className="main">
         <div className="mobile-top">
-          <div className="brand"><span className="brand-name"><span className="brand-dot" aria-hidden />Talent Live</span></div>
+          <div className="brand"><span className="brand-name"><span className="brand-dot" aria-hidden />Live Hub</span></div>
         </div>
         {children}
       </main>
