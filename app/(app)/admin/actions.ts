@@ -465,3 +465,31 @@ export async function resetSandiAdmin(formData: FormData) {
   if (error) back("/admin/admin", { e: error.message });
   back("/admin/admin", { ok: "sandi" });
 }
+
+// ---------------------------------------------------------------- permintaan reset sandi
+export async function selesaikanReset(formData: FormData) {
+  const me = await requireAdmin();
+  const id = Number(formData.get("id"));
+  const password = s(formData.get("password"));
+  const ret = s(formData.get("ret")) || "/admin";
+  if (password.length < 8) back(ret, { e: "Kata sandi minimal 8 karakter." });
+  const admin = createServiceClient();
+  const { data: req } = await admin.from("password_reset_requests").select("user_id, status").eq("id", id).maybeSingle();
+  if (!req || req.status !== "pending") back(ret, { e: "Permintaan tidak ditemukan atau sudah diproses." });
+  if (req.user_id === me.userId) back(ret, { e: "Untuk akun sendiri, pakai menu Ganti sandi." });
+  const { error } = await admin.auth.admin.updateUserById(req.user_id, { password });
+  if (error) back(ret, { e: error.message });
+  await admin.from("password_reset_requests").update({ status: "done", handled_by: me.userId, handled_at: new Date().toISOString() }).eq("id", id);
+  revalidatePath(ret);
+  back(ret, { ok: "reset-selesai" });
+}
+
+export async function abaikanReset(formData: FormData) {
+  const me = await requireAdmin();
+  const supabase = await createClient();
+  const ret = s(formData.get("ret")) || "/admin";
+  await supabase.from("password_reset_requests").update({ status: "dismissed", handled_by: me.userId, handled_at: new Date().toISOString() })
+    .eq("id", Number(formData.get("id")));
+  revalidatePath(ret);
+  back(ret, { ok: "reset-abaikan" });
+}

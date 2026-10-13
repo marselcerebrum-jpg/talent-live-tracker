@@ -4,6 +4,8 @@ import { tanggalPendek } from "@/lib/time";
 import { Notice } from "@/components/Notice";
 import { Avatar } from "@/components/Avatar";
 import { resetSandiAdmin, tambahAdmin } from "../actions";
+import { ResetRequests, type ResetReq } from "@/components/ResetRequests";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function KelolaAdmin({ searchParams }: { searchParams: Promise<{ ok?: string; e?: string }> }) {
   const me = await requireAdmin();
@@ -21,10 +23,15 @@ export default async function KelolaAdmin({ searchParams }: { searchParams: Prom
     configError = (e as Error).message;
   }
 
+  const { data: resetData } = await (await createClient()).from("password_reset_requests")
+    .select("id, display_name, role, login, requested_at").eq("status", "pending").order("requested_at", { ascending: false });
+  const resets = resetData ?? [];
+
   return (
     <>
       <div className="page-head"><div><h1>Kelola admin</h1><p>Admin bisa melihat semua data, mengatur jadwal, menyetujui izin, dan membuat akun.</p></div></div>
       <Notice ok={sp.ok} e={sp.e || configError || undefined} />
+      <ResetRequests rows={resets as ResetReq[]} ret="/admin/admin" />
       <div className="grid-2" style={{ alignItems: "start" }}>
         <section className="panel flush">
           <div className="band lime"><h2>Daftar admin ({admins.length})</h2></div>
@@ -65,7 +72,7 @@ export default async function KelolaAdmin({ searchParams }: { searchParams: Prom
       </div>
       <section className="panel" style={{ marginTop: 20 }}>
         <h2 style={{ marginBottom: 8 }}>Kalau ada yang lupa kata sandi</h2>
-        <p className="small">Talent: atur ulang di <a href="/admin/talent">Talent &amp; akun</a>. Admin: admin lain bisa mengatur ulang di halaman ini, atau admin sendiri memakai <strong>Lupa kata sandi?</strong> di halaman login (link dikirim ke email).</p>
+        <p className="small">Talent: atur ulang di <a href="/admin/talent">Talent &amp; akun</a>. Siapa pun yang lupa bisa menekan <strong>Lupa kata sandi?</strong> di halaman login. Admin menerima email pemberitahuan dan permintaannya muncul di Ringkasan untuk langsung dibuatkan sandi baru.</p>
       </section>
     </>
   );

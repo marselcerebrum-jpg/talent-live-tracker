@@ -5,9 +5,12 @@ import { hariIni, menitKeJam, rupiah, tanggalPendek } from "@/lib/time";
 import { AttendanceTable, monthRange, type AttRow } from "@/components/AttendanceTable";
 import { ChangeReport, type ChangeRow } from "@/components/ChangeReport";
 import { resolvePeriod } from "@/lib/period";
+import { ResetRequests, type ResetReq } from "@/components/ResetRequests";
+import { Notice } from "@/components/Notice";
 
-export default async function AdminHome() {
+export default async function AdminHome({ searchParams }: { searchParams: Promise<{ ok?: string; e?: string }> }) {
   await requireAdmin();
+  const sp = await searchParams;
   const today = hariIni();
   const r = monthRange();
   const per = await resolvePeriod({});
@@ -24,12 +27,16 @@ export default async function AdminHome() {
       .gte("created_at", `${today}T00:00:00+07:00`).order("created_at", { ascending: false }),
     supabase.from("v_replay_queue").select("item_key", { count: "exact", head: true }),
   ]);
+  const { data: resets } = await supabase.from("password_reset_requests").select("id, display_name, role, login, requested_at")
+    .eq("status", "pending").order("requested_at", { ascending: false });
   const minutes = (pay ?? []).reduce((a, p) => a + (p.duration_minutes ?? 0), 0);
   const amount = (pay ?? []).reduce((a, p) => a + Number(p.amount ?? 0), 0);
 
   return (
     <>
       <div className="page-head"><div><h1>Ringkasan</h1></div><span className="sticker">{tanggalPendek(today)}</span></div>
+      <Notice ok={sp.ok} e={sp.e} />
+      <ResetRequests rows={(resets ?? []) as ResetReq[]} ret="/admin" />
 
       <section className="panel">
         <div className="stats">
