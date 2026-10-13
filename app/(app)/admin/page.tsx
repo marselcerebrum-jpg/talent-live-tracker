@@ -27,7 +27,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
       .gte("created_at", `${today}T00:00:00+07:00`).order("created_at", { ascending: false }),
     supabase.from("v_replay_queue").select("item_key", { count: "exact", head: true }),
   ]);
-  const { data: resets } = await supabase.from("password_reset_requests").select("id, display_name, role, login, requested_at")
+  const { data: resets } = await supabase.from("password_reset_requests").select("id, display_name, role, login, requested_at, notify_status")
     .eq("status", "pending").order("requested_at", { ascending: false });
   const minutes = (pay ?? []).reduce((a, p) => a + (p.duration_minutes ?? 0), 0);
   const amount = (pay ?? []).reduce((a, p) => a + Number(p.amount ?? 0), 0);

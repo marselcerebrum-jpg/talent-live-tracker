@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notifyAdmins } from "@/lib/notify";
 
 export async function mintaResetSandi(formData: FormData) {
@@ -13,12 +13,19 @@ export async function mintaResetSandi(formData: FormData) {
   if (typeof name === "string" && name) {
     const h = await headers();
     const site = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
-    await notifyAdmins(
+    const status = await notifyAdmins(
       `Permintaan ubah kata sandi: ${name}`,
       `<p><strong>${name.replace(/[<>&"]/g, "")}</strong> minta kata sandinya di Talent Live Tracker diubah.</p>
        <p><a href="${site}/admin">Buka aplikasi untuk membuat kata sandi baru</a></p>
        <p>Setelah diubah, kabari yang bersangkutan lewat WhatsApp.</p>`,
     );
+    // catat hasil kirim email supaya mudah dicek bila email tidak sampai
+    try {
+      const svc = createServiceClient();
+      const { data: last } = await svc.from("password_reset_requests").select("id")
+        .eq("display_name", name).eq("status", "pending").order("requested_at", { ascending: false }).limit(1).maybeSingle();
+      if (last) await svc.from("password_reset_requests").update({ notify_status: status }).eq("id", last.id);
+    } catch { /* abaikan */ }
   }
   // pesan selalu sama, tidak membocorkan apakah akun ada
   redirect("/lupa-sandi?ok=1");

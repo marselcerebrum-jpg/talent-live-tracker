@@ -24,7 +24,7 @@ export default async function KelolaAdmin({ searchParams }: { searchParams: Prom
   }
 
   const { data: resetData } = await (await createClient()).from("password_reset_requests")
-    .select("id, display_name, role, login, requested_at").eq("status", "pending").order("requested_at", { ascending: false });
+    .select("id, display_name, role, login, requested_at, notify_status").eq("status", "pending").order("requested_at", { ascending: false });
   const resets = resetData ?? [];
 
   return (
