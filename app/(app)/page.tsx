@@ -31,7 +31,7 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
     supabase.from("attendance_checkins").select("slot_id, checked_in_at, checked_out_at").eq("talent_id", me.talentId!)
       .gte("checked_in_at", `${addDays(today, -1)}T00:00:00+07:00`),
     supabase.from("v_attendance").select("state").eq("talent_id", me.talentId!).gte("slot_date", r.start).lte("slot_date", today),
-    supabase.from("v_session_pay").select("duration_minutes, amount").eq("talent_id", me.talentId!).gte("session_date", per.start).lte("session_date", per.end),
+    supabase.from("v_slot_pay").select("live_minutes, amount").eq("talent_id", me.talentId!).gte("slot_date", per.start).lte("slot_date", per.end),
     supabase.from("schedule_slots").select("id, talent_id, account_code, start_at, end_at").eq("status", "scheduled").eq("slot_date", today).neq("talent_id", me.talentId!).order("start_at"),
     supabase.from("v_talent_directory").select("id, nickname"),
     supabase.from("schedule_changes").select("slot_id"),
@@ -53,7 +53,7 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
   const swapCands = (teamToday ?? []).filter(inWin);
   const movable = slots.filter((s) => !inWin(s) && new Date(s.end_at).getTime() > now && !ci.has(s.slot_id) && !changed.has(s.slot_id));
   const myTodayOpen = todays.find((s) => !ci.has(s.slot_id) && !changed.has(s.slot_id) && !inWin(s));
-  const menit = (pay ?? []).reduce((a, p) => a + (p.duration_minutes ?? 0), 0);
+  const menit = (pay ?? []).reduce((a, p) => a + (p.live_minutes ?? 0), 0);
   const gaji = (pay ?? []).reduce((a, p) => a + Number(p.amount ?? 0), 0);
 
   let hero: React.ReactNode;

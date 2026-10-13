@@ -15,13 +15,13 @@ export default async function AbsensiPage({ searchParams }: { searchParams: Prom
     supabase.from("v_attendance").select("*").eq("talent_id", me.talentId!)
       .gte("slot_date", r.start).lte("slot_date", r.end).order("start_at", { ascending: false }),
     supabase.from("live_accounts").select("code, name"),
-    supabase.from("v_session_pay").select("duration_minutes, amount").eq("talent_id", me.talentId!)
-      .gte("session_date", r.start).lte("session_date", r.end),
+    supabase.from("v_slot_pay").select("live_minutes, amount").eq("talent_id", me.talentId!)
+      .gte("slot_date", r.start).lte("slot_date", r.end),
     supabase.from("v_talent_directory").select("id, nickname"),
   ]);
   const rows = (data ?? []) as AttRow[];
   const count = (s: string) => rows.filter((x) => x.state === s).length;
-  const minutes = (pay ?? []).reduce((a, p) => a + (p.duration_minutes ?? 0), 0);
+  const minutes = (pay ?? []).reduce((a, p) => a + (p.live_minutes ?? 0), 0);
   const amount = (pay ?? []).reduce((a, p) => a + Number(p.amount ?? 0), 0);
 
   return (

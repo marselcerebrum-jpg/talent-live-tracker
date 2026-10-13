@@ -20,7 +20,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
     supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("import_issues").select("id", { count: "exact", head: true }).eq("resolved", false).neq("severity", "info"),
     supabase.from("live_sessions").select("id", { count: "exact", head: true }).eq("review_status", "needs_review"),
-    supabase.from("v_session_pay").select("duration_minutes, amount").gte("session_date", per.start).lte("session_date", per.end),
+    supabase.from("v_slot_pay").select("live_minutes, amount").gte("slot_date", per.start).lte("slot_date", per.end),
     supabase.from("talents").select("id, nickname"),
     supabase.from("live_accounts").select("code, name"),
     supabase.from("schedule_changes").select("*, slot:schedule_slots(account_code, talent_id)")
@@ -29,7 +29,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   ]);
   const { data: resets } = await supabase.from("password_reset_requests").select("id, display_name, role, login, requested_at, notify_status")
     .eq("status", "pending").order("requested_at", { ascending: false });
-  const minutes = (pay ?? []).reduce((a, p) => a + (p.duration_minutes ?? 0), 0);
+  const minutes = (pay ?? []).reduce((a, p) => a + (p.live_minutes ?? 0), 0);
   const amount = (pay ?? []).reduce((a, p) => a + Number(p.amount ?? 0), 0);
 
   return (
