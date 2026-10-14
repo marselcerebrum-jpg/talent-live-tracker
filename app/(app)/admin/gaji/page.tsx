@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { menitKeJam, rupiah } from "@/lib/time";
@@ -62,7 +63,7 @@ export default async function AdminGaji({ searchParams }: { searchParams: Promis
                 <div key={id} className="li">
                   <Avatar name={t?.nickname ?? "?"} />
                   <div>
-                    <div className="t"><a href={qs(id)}>{t?.nickname ?? "?"}</a> <span className="s">{t?.full_name}</span></div>
+                    <div className="t"><Link href={qs(id)}>{t?.nickname ?? "?"}</Link> <span className="s">{t?.full_name}</span></div>
                     <div className="s">{v.sesi} sesi dibayar, live {menitKeJam(v.menit)}{v.izin ? `, izin ${v.izin}` : ""}{v.alpha ? `, tidak hadir ${v.alpha}` : ""}</div>
                     {v.pel > 0 && <div className="chg"><span className="badge badge-alpha">{v.pel} sesi dengan pelanggaran</span></div>}
                   </div>
@@ -76,7 +77,7 @@ export default async function AdminGaji({ searchParams }: { searchParams: Promis
 
       {sp.t && (
         <section className="panel flush" style={{ marginTop: 20 }}>
-          <div className="band sky"><h2>Rincian {name.get(sp.t)?.nickname}</h2><a href={qs()}>Tutup</a></div>
+          <div className="band sky"><h2>Rincian {name.get(sp.t)?.nickname}</h2><Link href={qs()}>Tutup</Link></div>
           <SlotPayList rows={detail} accName={accName} />
         </section>
       )}

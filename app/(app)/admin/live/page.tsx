@@ -47,7 +47,7 @@ export default async function AdminLive({ searchParams }: { searchParams: Promis
       </div>
       <Notice ok={sp.ok} e={sp.e} />
       <section className="panel">
-        <div className="panel-head"><h2>Rekap per talent</h2><span className="small muted">Gaji dihitung per sesi di <a href="/admin/gaji">Estimasi gaji</a></span></div>
+        <div className="panel-head"><h2>Rekap per talent</h2><span className="small muted">Gaji dihitung per sesi di <Link href="/admin/gaji">Estimasi gaji</Link></span></div>
         <div className="table-wrap"><table>
           <thead><tr><th>Talent</th><th className="num">Sesi</th><th className="num">Total live</th></tr></thead>
           <tbody>{rekap.map(([id, v]) => (

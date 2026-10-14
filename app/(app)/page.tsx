@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getMe } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -64,7 +65,7 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
         <span className="badge">{todays.length ? "Selesai untuk hari ini" : "Libur live"}</span>
         <div className="acc">{todays.length ? "Kerja bagus!" : "Tidak ada slot"}</div>
         <p className="meta">{todays.length ? "Semua slot hari ini sudah lewat. Pastikan data live sudah diisi." : "Kamu tidak punya jadwal live hari ini."}</p>
-        {todays.length > 0 && <a className="btn" href="/live/baru" style={{ marginTop: 14 }}>Isi data live</a>}
+        {todays.length > 0 && <Link className="btn" href="/live/baru" style={{ marginTop: 14 }}>Isi data live</Link>}
       </section>
     );
   } else {
@@ -98,11 +99,11 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
             <form action={selesaiLive} className="row" style={{ marginTop: 12 }}>
               <input type="hidden" name="slot_id" value={focus.slot_id} />
               <button className="btn" type="submit">Selesai live</button>
-              <a className="btn btn-ghost" href="/live/baru">Isi data live</a>
+              <Link className="btn btn-ghost" href="/live/baru">Isi data live</Link>
             </form>
           </>
         )}
-        {done && <a className="btn" href="/live/baru" style={{ marginTop: 14 }}>Isi data live</a>}
+        {done && <Link className="btn" href="/live/baru" style={{ marginTop: 14 }}>Isi data live</Link>}
       </section>
     );
   }
@@ -181,7 +182,7 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
         </details>
       )}
 
-      <div className="sect"><span>Berikutnya</span><a href="/jadwal">Kalender</a></div>
+      <div className="sect"><span>Berikutnya</span><Link href="/jadwal">Kalender</Link></div>
       <section className="panel flush">
         {rest.length === 0 ? <p className="muted" style={{ padding: 20 }}>Belum ada slot lain dalam 6 hari ke depan.</p> : (
           <div className="list">
@@ -199,10 +200,10 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
         )}
       </section>
 
-      <div className="sect"><span>Bulan ini</span><a href="/absensi">Detail</a></div>
+      <div className="sect"><span>Bulan ini</span><Link href="/absensi">Detail</Link></div>
       <div className="stats">
         <div className="stat"><strong>{hadir}/{past.length}</strong><span>Hadir</span></div>
-        <div className="stat"><strong>{rupiah(gaji)}</strong><span><a href="/gaji">Estimasi gaji {per.label}</a></span></div>
+        <div className="stat"><strong>{rupiah(gaji)}</strong><span><Link href="/gaji">Estimasi gaji {per.label}</Link></span></div>
         <div className="stat"><strong>{menitKeJam(menit)}</strong><span>Total live periode gaji</span></div>
       </div>
     </>

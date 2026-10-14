@@ -5,6 +5,8 @@ import "@fontsource/plus-jakarta-sans/500.css";
 import "@fontsource/plus-jakarta-sans/600.css";
 import "@fontsource/plus-jakarta-sans/700.css";
 import "./globals.css";
+import { Suspense } from "react";
+import { NavProgress } from "@/components/NavProgress";
 
 export const metadata: Metadata = {
   title: "Live Hub",
@@ -17,7 +19,10 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id">
-      <body>{children}</body>
+      <body>
+        <Suspense fallback={null}><NavProgress /></Suspense>
+        {children}
+      </body>
     </html>
   );
 }

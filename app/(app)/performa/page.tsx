@@ -53,7 +53,7 @@ export default async function PerformaSaya({ searchParams }: { searchParams: Pro
       </div>
 
       {rows.length === 0 ? (
-        <div className="panel empty"><strong>Belum ada data live bulan ini</strong>Data muncul setelah kamu mengisi <a href="/live/baru">data live</a>.</div>
+        <div className="panel empty"><strong>Belum ada data live bulan ini</strong>Data muncul setelah kamu mengisi <Link href="/live/baru">data live</Link>.</div>
       ) : (
         <>
           <section className="panel">

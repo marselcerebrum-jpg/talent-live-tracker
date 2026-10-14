@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { tanggalPendek } from "@/lib/time";
@@ -52,7 +53,7 @@ export default async function KelolaAdmin({ searchParams }: { searchParams: Prom
                       </form>
                     </details>
                   ) : (
-                    <a className="small" href="/akun">Ganti sandi saya</a>
+                    <Link className="small" href="/akun">Ganti sandi saya</Link>
                   )}
                 </div>
                 <span className="badge">Admin</span>
@@ -72,7 +73,7 @@ export default async function KelolaAdmin({ searchParams }: { searchParams: Prom
       </div>
       <section className="panel" style={{ marginTop: 20 }}>
         <h2 style={{ marginBottom: 8 }}>Kalau ada yang lupa kata sandi</h2>
-        <p className="small">Talent: atur ulang di <a href="/admin/talent">Talent &amp; akun</a>. Siapa pun yang lupa bisa menekan <strong>Lupa kata sandi?</strong> di halaman login. Admin menerima email pemberitahuan dan permintaannya muncul di Ringkasan untuk langsung dibuatkan sandi baru.</p>
+        <p className="small">Talent: atur ulang di <Link href="/admin/talent">Talent &amp; akun</Link>. Siapa pun yang lupa bisa menekan <strong>Lupa kata sandi?</strong> di halaman login. Admin menerima email pemberitahuan dan permintaannya muncul di Ringkasan untuk langsung dibuatkan sandi baru.</p>
       </section>
     </>
   );

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getMe } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import { NavLinks, type NavItem } from "@/components/NavLinks";
@@ -73,7 +74,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <strong>{who}</strong>
           <span className="muted">{isAdmin ? "Admin" : "Talent"}</span>
           <div className="row">
-            <a className="btn btn-ghost btn-sm" href="/akun">Ganti sandi</a>
+            <Link className="btn btn-ghost btn-sm" href="/akun">Ganti sandi</Link>
             <form action={logout}><button className="btn btn-ghost btn-sm" type="submit">Keluar</button></form>
           </div>
         </div>

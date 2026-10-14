@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { hariIni, isYmd } from "@/lib/time";
 
@@ -16,12 +17,12 @@ function minusDay(s: string) {
   const d = new Date(`${s}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10);
 }
 
-export async function payrollStartDay(): Promise<number> {
+export const payrollStartDay = cache(async function payrollStartDay(): Promise<number> {
   const supabase = await createClient();
   const { data } = await supabase.from("app_settings").select("value").eq("key", "payroll_period_start_day").maybeSingle();
   const n = Number(data?.value);
   return n >= 1 && n <= 28 ? n : 25;
-}
+});
 
 /** Periode gaji yang memuat tanggal `ref`: [tgl D bulan lalu .. D-1 bulan ini]. */
 export function periodOf(ref: string, day: number): Period {

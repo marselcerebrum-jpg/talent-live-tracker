@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -9,23 +10,21 @@ export type Me = {
   nickname: string | null;
 };
 
-export async function getMe(): Promise<Me> {
+export const getMe = cache(async function getMe(): Promise<Me> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  // profil + nama talent dalam satu query (relasi profiles.talent_id -> talents)
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, talent_id")
+    .select("role, talent_id, talents(nickname)")
     .eq("id", user.id)
     .maybeSingle();
   if (!profile) redirect("/auth/keluar");
-  let nickname: string | null = null;
-  if (profile.talent_id) {
-    const { data: t } = await supabase.from("talents").select("nickname").eq("id", profile.talent_id).maybeSingle();
-    nickname = t?.nickname ?? null;
-  }
+  const t = profile.talents as unknown as { nickname: string } | { nickname: string }[] | null;
+  const nickname = (Array.isArray(t) ? t[0]?.nickname : t?.nickname) ?? null;
   return { userId: user.id, email: user.email ?? null, role: profile.role, talentId: profile.talent_id, nickname };
-}
+});
 
 export async function requireAdmin(): Promise<Me> {
   const me = await getMe();

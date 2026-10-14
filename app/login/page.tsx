@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { login } from "./actions";
 
 const PESAN: Record<string, string> = {
@@ -27,7 +28,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <button className="btn" type="submit">Masuk</button>
         </form>
         <p className="small" style={{ marginTop: 18 }}>
-          <a href="/lupa-sandi">Lupa kata sandi?</a> <span className="muted">Admin akan mendapat pemberitahuan.</span>
+          <Link href="/lupa-sandi">Lupa kata sandi?</Link> <span className="muted">Admin akan mendapat pemberitahuan.</span>
         </p>
       </div>
     </main>

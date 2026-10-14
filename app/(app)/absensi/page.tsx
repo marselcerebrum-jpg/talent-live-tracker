@@ -39,7 +39,7 @@ export default async function AbsensiPage({ searchParams }: { searchParams: Prom
           <div className="stat"><strong>{count("izin")}</strong><span>Izin</span></div>
           <div className="stat"><strong>{count("alpha")}</strong><span>Tidak hadir</span></div>
           <div className="stat"><strong>{menitKeJam(minutes)}</strong><span>Total live</span></div>
-          <div className="stat"><strong>{rupiah(amount)}</strong><span>Estimasi bulan kalender. <a href="/gaji">Lihat periode gaji</a></span></div>
+          <div className="stat"><strong>{rupiah(amount)}</strong><span>Estimasi bulan kalender. <Link href="/gaji">Lihat periode gaji</Link></span></div>
         </div>
       </section>
       <section className="panel flush">
