@@ -37,6 +37,7 @@ const ADMIN_ANALISIS: NavItem[] = [
 const ADMIN_ATUR: NavItem[] = [
   { href: "/admin/talent", label: "Talent & akun" },
   { href: "/admin/admin", label: "Kelola admin" },
+  { href: "/admin/ruangan", label: "Ruangan live" },
   { href: "/admin/perlu-dicek", label: "Perlu dicek" },
   { href: "/jadwal", label: "Kalender tim" },
 ];

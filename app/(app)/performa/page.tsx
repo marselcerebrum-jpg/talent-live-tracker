@@ -6,6 +6,7 @@ import { jam, menitKeJam, tanggalPendek } from "@/lib/time";
 import { aggregate, daily, delta, fmtNum, groupBy, type PerfRow } from "@/lib/perf";
 import { monthRange } from "@/components/AttendanceTable";
 import { BarChart } from "@/components/Chart";
+import { DailyMatrix } from "@/components/DailyMatrix";
 import { attribute, sumBy, type PromoCode, type PromoDaily } from "@/lib/promo";
 import { rupiah } from "@/lib/time";
 import { featureOn } from "@/lib/features";
@@ -88,6 +89,11 @@ export default async function PerformaSaya({ searchParams }: { searchParams: Pro
           <section className="panel">
             <div className="panel-head"><h2>Tayangan per hari</h2><span className="small muted">Batang gelap = hari terbaikmu</span></div>
             <BarChart title="Tayangan TikTok per hari" data={daily(rows, r.start, r.end).map((d) => ({ label: d.date.slice(8), value: d.views }))} />
+          </section>
+
+          <section className="panel flush">
+            <div className="band sky"><h2>Performa harian</h2><span className="small">per aplikasi</span></div>
+            <DailyMatrix rows={rows} keyOf={(x) => x.account_code} nameOf={(k) => acc.get(k) ?? k} />
           </section>
 
           <section className="panel">

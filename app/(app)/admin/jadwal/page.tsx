@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { addDays, hariIni, isYmd, jam, senin, tanggalPanjang, tanggalPendek } from "@/lib/time";
 import { Notice } from "@/components/Notice";
 import { batalkanSlot, tambahSlot } from "../actions";
+import { RoomConflicts, type RoomConflict } from "@/components/RoomConflicts";
 
 const HARI = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 const SLOT_UMUM = [["06:00", "10:00"], ["10:00", "14:00"], ["14:00", "18:00"], ["18:00", "22:00"], ["22:00", "00:00"]];
@@ -14,11 +15,12 @@ export default async function AdminJadwal({ searchParams }: { searchParams: Prom
   const start = senin(isYmd(sp.w) ? sp.w : hariIni());
   const end = addDays(start, 6);
   const supabase = await createClient();
-  const [{ data: slots }, { data: talents }, { data: accounts }] = await Promise.all([
+  const [{ data: slots }, { data: talents }, { data: accounts }, { data: conflicts }] = await Promise.all([
     supabase.from("schedule_slots").select("id, account_code, talent_id, start_at, end_at, slot_date, is_event, note, source")
       .eq("status", "scheduled").gte("slot_date", start).lte("slot_date", end).order("start_at"),
     supabase.from("talents").select("id, nickname, is_active").order("nickname"),
     supabase.from("live_accounts").select("code, name").eq("is_active", true).order("name"),
+    supabase.from("v_room_conflicts").select("*").gte("slot_date", start).lte("slot_date", end).order("start_a"),
   ]);
   const nick = new Map((talents ?? []).map((t) => [t.id, t.nickname]));
   const accName = new Map((accounts ?? []).map((a) => [a.code, a.name]));
@@ -34,6 +36,7 @@ export default async function AdminJadwal({ searchParams }: { searchParams: Prom
         </div>
       </div>
       <Notice ok={sp.ok} e={sp.e} />
+      <RoomConflicts rows={(conflicts ?? []) as RoomConflict[]} accName={accName} nick={nick} />
 
       <div className="grid-2" style={{ alignItems: "start" }}>
         <section className="panel">

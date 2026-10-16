@@ -493,3 +493,35 @@ export async function abaikanReset(formData: FormData) {
   revalidatePath(ret);
   back(ret, { ok: "reset-abaikan" });
 }
+
+// ---------------------------------------------------------------- ruangan live
+export async function tambahRuangan(formData: FormData) {
+  await requireAdmin();
+  const name = s(formData.get("name"));
+  if (!name) back("/admin/ruangan", { e: "Isi nama ruangan." });
+  const supabase = await createClient();
+  const { error } = await supabase.from("rooms").insert({ name, notes: s(formData.get("notes")) || null });
+  if (error) back("/admin/ruangan", { e: error.code === "23505" ? "Nama ruangan sudah ada." : error.message });
+  revalidatePath("/admin/ruangan");
+  back("/admin/ruangan", { ok: "ruangan" });
+}
+
+export async function aturRuanganAkun(formData: FormData) {
+  await requireAdmin();
+  const code = s(formData.get("account_code"));
+  const room = s(formData.get("room_id")) || null;
+  const supabase = await createClient();
+  const { error } = await supabase.from("live_accounts")
+    .update({ room_id: room, device_note: s(formData.get("device_note")) || null }).eq("code", code);
+  if (error) back("/admin/ruangan", { e: error.message });
+  revalidatePath("/admin/ruangan");
+  back("/admin/ruangan", { ok: "ruangan" });
+}
+
+export async function aturAktifRuangan(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.from("rooms").update({ is_active: formData.get("active") === "1" }).eq("id", s(formData.get("id")));
+  revalidatePath("/admin/ruangan");
+  back("/admin/ruangan", { ok: "ruangan" });
+}

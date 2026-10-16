@@ -6,10 +6,11 @@ import { aggregate, daily, fmtNum, groupBy, type PerfRow } from "@/lib/perf";
 import { monthRange } from "@/components/AttendanceTable";
 import { BarChart } from "@/components/Chart";
 import { PerfTable } from "@/components/PerfTable";
+import { DailyMatrix } from "@/components/DailyMatrix";
 
 const COLS = "id, talent_id, account_code, platform, session_date, started_at, duration_minutes, total_views, unique_viewers, peak_concurrent, avg_watch_seconds, active_viewers, topic";
 
-export default async function AdminPerforma({ searchParams }: { searchParams: Promise<{ m?: string; a?: string; t?: string }> }) {
+export default async function AdminPerforma({ searchParams }: { searchParams: Promise<{ m?: string; a?: string; t?: string; v?: string }> }) {
   await requireAdmin();
   const sp = await searchParams;
   const r = monthRange(sp.m);
@@ -29,7 +30,8 @@ export default async function AdminPerforma({ searchParams }: { searchParams: Pr
   const perAkun = groupBy(rows, (x) => x.account_code).sort((a, b) => (b.viewsPerHour ?? 0) - (a.viewsPerHour ?? 0));
   const top = [...rows].filter((x) => x.total_views !== null).sort((a, b) => (b.total_views ?? 0) - (a.total_views ?? 0)).slice(0, 10);
   const qs = (p: Record<string, string | undefined>) =>
-    "/admin/performa?" + new URLSearchParams(Object.entries({ m: r.month, a: sp.a, t: sp.t, ...p }).filter(([, v]) => v) as [string, string][]);
+    "/admin/performa?" + new URLSearchParams(Object.entries({ m: r.month, a: sp.a, t: sp.t, v: sp.v, ...p }).filter(([, v]) => v) as [string, string][]);
+  const view = sp.v === "talent" || sp.v === "akun" ? sp.v : "ringkasan";
 
   return (
     <>
@@ -41,8 +43,15 @@ export default async function AdminPerforma({ searchParams }: { searchParams: Pr
         </div>
       </div>
 
+      <nav className="tabs-inline" aria-label="Tampilan performa">
+        <Link href={qs({ v: "" })} aria-current={view === "ringkasan" ? "page" : undefined}>Ringkasan</Link>
+        <Link href={qs({ v: "talent" })} aria-current={view === "talent" ? "page" : undefined}>Harian per talent</Link>
+        <Link href={qs({ v: "akun" })} aria-current={view === "akun" ? "page" : undefined}>Harian per aplikasi</Link>
+      </nav>
+
       <form className="row" action="/admin/performa" style={{ marginBottom: 16 }}>
         <input type="hidden" name="m" value={r.month} />
+        {sp.v && <input type="hidden" name="v" value={sp.v} />}
         <select name="a" defaultValue={sp.a ?? ""} aria-label="Akun" style={{ width: "auto" }}>
           <option value="">Semua akun</option>
           {(accounts ?? []).map((a) => <option key={a.code} value={a.code}>{a.name}</option>)}
@@ -54,7 +63,17 @@ export default async function AdminPerforma({ searchParams }: { searchParams: Pr
         <button className="btn btn-ghost btn-sm" type="submit">Terapkan</button>
       </form>
 
-      {rows.length === 0 ? (
+      {view !== "ringkasan" ? (
+        <section className="panel flush">
+          <div className="band sky"><h2>{view === "talent" ? "Performa harian per talent" : "Performa harian per aplikasi"}</h2><span className="small">angka besar = tayangan TikTok</span></div>
+          <DailyMatrix
+            rows={rows}
+            keyOf={(x) => (view === "talent" ? x.talent_id : x.account_code)}
+            nameOf={(k) => (view === "talent" ? nick.get(k) ?? "?" : acc.get(k) ?? k)}
+          />
+          <p className="metric-note" style={{ padding: "0 20px 16px" }}>Setiap sel: total tayangan, durasi live, dan puncak penonton bersamaan di hari itu. Geser tabel ke samping di HP.</p>
+        </section>
+      ) : rows.length === 0 ? (
         <div className="panel empty"><strong>Belum ada data live di periode ini</strong>Pilih bulan lain atau ubah filter.</div>
       ) : (
         <>

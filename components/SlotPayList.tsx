@@ -2,7 +2,7 @@ import { menitKeJam, rupiah, tanggalPendek } from "@/lib/time";
 
 export type SlotPay = {
   talent_id: string; slot_date: string; sesi: number; sesi_label: string; jam_sesi: number;
-  live_minutes: number; slot_count: number; accounts: string[]; pelanggaran: string[]; amount: number | string;
+  live_minutes: number; slot_count: number; accounts: string[]; pelanggaran: string[]; amount: number | string; menunggu_data_live?: boolean;
 };
 
 /** Rincian gaji per sesi (satu baris = satu sesi yang dihadiri). */
@@ -16,6 +16,7 @@ export function SlotPayList({ rows, accName }: { rows: SlotPay[]; accName: Map<s
           <div>
             <div className="t">{tanggalPendek(r.slot_date)} <span className="s">sesi {r.sesi}, {r.sesi_label}</span></div>
             <div className="s">{r.accounts.map((a) => accName.get(a) ?? a).join(", ")}, live {menitKeJam(r.live_minutes)}{r.slot_count > 1 ? ` (gabungan ${r.slot_count} slot)` : ""}</div>
+            {r.menunggu_data_live && <div className="chg"><span className="badge badge-pending">menunggu data live (maks. 3 jam setelah sesi)</span></div>}
             {r.pelanggaran.length > 0 && (
               <div className="chg">{r.pelanggaran.map((p) => <span key={p} className="badge badge-alpha">{p}</span>)}</div>
             )}

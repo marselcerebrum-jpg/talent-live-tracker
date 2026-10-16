@@ -42,11 +42,18 @@ export default async function AdminAbsensi({ searchParams }: { searchParams: Pro
   let q = supabase.from("v_attendance").select("*").gte("slot_date", r.start).lte("slot_date", r.end).order("start_at", { ascending: false });
   if (sp.t) q = q.eq("talent_id", sp.t);
   if (sp.s) q = q.eq("state", sp.s);
-  const [{ data }, { data: talents }, { data: accounts }, { data: changes }] = await Promise.all([
+  const [{ data }, { data: talents }, { data: accounts }, { data: changes }, { data: slotPay }] = await Promise.all([
     q, supabase.from("talents").select("id, nickname, is_active").order("nickname"), supabase.from("live_accounts").select("code, name"),
     supabase.from("schedule_changes").select("*, slot:schedule_slots(account_code, talent_id)")
       .gte("original_start_at", `${r.start}T00:00:00+07:00`).lte("original_start_at", `${r.end}T23:59:59+07:00`).order("created_at", { ascending: false }),
+    supabase.from("v_slot_pay").select("talent_id, pelanggaran").gte("slot_date", r.start).lte("slot_date", r.end),
   ]);
+  const tidakIsi = new Map<string, number>();
+  (slotPay ?? []).forEach((p: { talent_id: string; pelanggaran: string[] }) => {
+    if (p.pelanggaran.some((x) => x.startsWith("tidak mengisi data live") || x.startsWith("statistik TikTok tidak diisi"))) {
+      tidakIsi.set(p.talent_id, (tidakIsi.get(p.talent_id) ?? 0) + 1);
+    }
+  });
   let rows = (data ?? []) as AttRow[];
   const nick = new Map((talents ?? []).map((t) => [t.id, t.nickname]));
   const qs = new URLSearchParams(Object.entries({ m: r.month, t: sp.t, s: sp.s, k: sp.k }).filter(([, v]) => v) as [string, string][]).toString();
@@ -66,7 +73,8 @@ export default async function AdminAbsensi({ searchParams }: { searchParams: Pro
     if (!x.change_kind && (x.flag_live_di_jam_lain || x.flag_diisi_talent_lain)) v.auto++;
     rek.set(key, v);
   });
-  const rekRows = [...rek.entries()].filter(([, v]) => v.tidak + v.tukar + v.pindah + v.auto > 0)
+  tidakIsi.forEach((_, id) => { if (!rek.has(id)) rek.set(id, { tidak: 0, tukar: 0, pindah: 0, tanpaIzin: 0, auto: 0 }); });
+  const rekRows = [...rek.entries()].filter(([id, v]) => v.tidak + v.tukar + v.pindah + v.auto + (tidakIsi.get(id) ?? 0) > 0)
     .sort((a, b) => (b[1].tanpaIzin + b[1].auto) - (a[1].tanpaIzin + a[1].auto));
 
   if (sp.k === "perubahan") rows = rows.filter((x) => x.change_kind || x.flag_live_di_jam_lain || x.flag_diisi_talent_lain);
@@ -86,9 +94,9 @@ export default async function AdminAbsensi({ searchParams }: { searchParams: Pro
         <div className="band pink"><h2>Kesesuaian jadwal</h2><Link href={`/admin/absensi?${new URLSearchParams({ m: r.month, k: "perubahan" })}`}>Lihat slotnya</Link></div>
         {rekRows.length === 0 ? <p className="muted" style={{ padding: 20 }}>Semua talent sesuai jadwal di {r.label}.</p> : (
           <div className="table-wrap" style={{ margin: 0, padding: "0 20px" }}><table>
-            <thead><tr><th>Talent</th><th className="num">Tidak sesuai</th><th className="num">Tukar shift</th><th className="num">Pindah jadwal</th><th className="num key">Tanpa izin</th><th className="num">Terdeteksi, tidak dilaporkan</th></tr></thead>
+            <thead><tr><th>Talent</th><th className="num">Tidak sesuai</th><th className="num">Tukar shift</th><th className="num">Pindah jadwal</th><th className="num key">Tanpa izin</th><th className="num">Terdeteksi, tidak dilaporkan</th><th className="num">Tidak isi data live</th></tr></thead>
             <tbody>{rekRows.map(([id, v]) => (
-              <tr key={id}><td><strong>{nick.get(id) ?? "?"}</strong></td><td className="num">{v.tidak}</td><td className="num">{v.tukar}</td><td className="num">{v.pindah}</td><td className="num key">{v.tanpaIzin}</td><td className="num">{v.auto}</td></tr>
+              <tr key={id}><td><strong>{nick.get(id) ?? "?"}</strong></td><td className="num">{v.tidak}</td><td className="num">{v.tukar}</td><td className="num">{v.pindah}</td><td className="num key">{v.tanpaIzin}</td><td className="num">{v.auto}</td><td className="num">{tidakIsi.get(id) ?? 0}</td></tr>
             ))}</tbody>
           </table></div>
         )}

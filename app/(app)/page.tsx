@@ -28,7 +28,7 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
     supabase.from("v_attendance")
       .select("slot_id, account_code, slot_date, start_at, end_at, is_event, state, jam_absen, check_in_source, live_minutes, session_count")
       .eq("talent_id", me.talentId!).gte("slot_date", today).lte("slot_date", addDays(today, 6)).order("start_at"),
-    supabase.from("live_accounts").select("code, name"),
+    supabase.from("live_accounts").select("code, name, device_note, rooms(name)"),
     supabase.from("attendance_checkins").select("slot_id, checked_in_at, checked_out_at").eq("talent_id", me.talentId!)
       .gte("checked_in_at", `${addDays(today, -1)}T00:00:00+07:00`),
     supabase.from("v_attendance").select("state").eq("talent_id", me.talentId!).gte("slot_date", r.start).lte("slot_date", today),
@@ -39,6 +39,11 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
   ]);
 
   const accName = (c: string) => (accounts ?? []).find((a) => a.code === c)?.name ?? c;
+  const roomOf = (c: string) => {
+    const a = (accounts ?? []).find((x) => x.code === c) as { rooms?: { name: string } | { name: string }[] | null; device_note?: string | null } | undefined;
+    const r = Array.isArray(a?.rooms) ? a?.rooms[0] : a?.rooms;
+    return { room: r?.name ?? null, device: a?.device_note ?? null };
+  };
   const ci = new Map((checkins ?? []).map((c) => [c.slot_id, c]));
   const slots = (rows ?? []) as Att[];
   const now = Date.now();
@@ -83,6 +88,12 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
           : <span className="badge">Nanti</span>}
         <div className="acc">{accName(focus.account_code)}</div>
         <div className="time">{jam(focus.start_at)}–{jam(focus.end_at)}{focus.is_event ? ", event" : ""}</div>
+        {(roomOf(focus.account_code).room || roomOf(focus.account_code).device) && (
+          <div className="row" style={{ marginTop: 10, gap: 8 }}>
+            {roomOf(focus.account_code).room && <span className="room-pill">Ruang: {roomOf(focus.account_code).room}</span>}
+            {roomOf(focus.account_code).device && <span className="room-pill">{roomOf(focus.account_code).device}</span>}
+          </div>
+        )}
         {focus.jam_absen && <p className="meta">Absen pukul {focus.jam_absen}{focus.check_in_source === "data_live" ? " (dari data live)" : ""}</p>}
 
         {inWindow && !c && (
@@ -191,7 +202,7 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
                 <Avatar name={accName(s.account_code)} />
                 <div>
                   <div className="t">{accName(s.account_code)}{s.is_event ? " (event)" : ""}</div>
-                  <div className="s">{s.slot_date === today ? "Hari ini" : tanggalPendek(s.slot_date)}, {jam(s.start_at)}–{jam(s.end_at)}</div>
+                  <div className="s">{s.slot_date === today ? "Hari ini" : tanggalPendek(s.slot_date)}, {jam(s.start_at)}–{jam(s.end_at)}{roomOf(s.account_code).room ? `, ${roomOf(s.account_code).room}` : ""}</div>
                 </div>
                 <span className={`badge badge-${s.state}`}>{s.slot_date === today ? "Nanti" : STATUS[s.state] ?? s.state}</span>
               </div>

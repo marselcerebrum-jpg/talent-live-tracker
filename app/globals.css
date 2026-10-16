@@ -332,3 +332,11 @@ details.more[open] > summary { margin-bottom: 14px; }
   animation: skel 1.2s ease-in-out infinite; border-radius: 12px; }
 @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .skel-card { border: var(--b); border-radius: var(--r-l); box-shadow: var(--sh); background: var(--surface); padding: 18px; display: grid; gap: 12px; }
+
+/* tabel performa harian */
+table.daily td, table.daily th { vertical-align: middle; }
+table.daily .sticky { position: sticky; left: 0; background: var(--surface); z-index: 1; box-shadow: 2px 0 0 var(--line); }
+.tabs-inline { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.tabs-inline a { text-decoration: none; font-weight: 700; font-size: .88rem; padding: 7px 14px; border: var(--b); border-radius: 999px; background: var(--surface); }
+.tabs-inline a[aria-current="page"] { background: var(--lime); box-shadow: var(--sh-s); }
+.room-pill { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: .85rem; background: var(--surface); border: var(--b); border-radius: 999px; padding: 2px 10px; }

@@ -24,6 +24,7 @@ const OK: Record<string, string> = {
   "reset-selesai": "Kata sandi baru disimpan. Kabari yang bersangkutan lewat WhatsApp.",
   "reset-abaikan": "Permintaan diabaikan.",
   kode: "Kode promo tersimpan.",
+  ruangan: "Ruangan tersimpan.",
   "fitur-on": "Fitur kode promo diaktifkan.",
   "minta-sync": "Permintaan sinkronisasi tercatat. Sekarang ketik di chat Claude: proses sync kode promo Live Hub.",
   "batal-sync": "Permintaan sinkronisasi dibatalkan.",

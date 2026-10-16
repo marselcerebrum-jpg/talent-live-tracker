@@ -19,6 +19,7 @@ export default async function Lainnya() {
         ...(promoOn ? [{ href: "/admin/promo", title: "Kode promo", desc: "Sales per talent" }] : []),
         { href: "/admin/talent", title: "Talent & akun", desc: "Login & data talent" },
         { href: "/admin/admin", title: "Kelola admin", desc: "Tambah & reset sandi" },
+        { href: "/admin/ruangan", title: "Ruangan live", desc: "Ruangan per aplikasi" },
         { href: "/admin/perlu-dicek", title: "Perlu dicek", desc: "Data meragukan" },
         { href: "/jadwal", title: "Kalender tim", desc: "Jadwal mingguan" },
         { href: "/akun", title: "Ganti sandi", desc: "Keamanan akun" },

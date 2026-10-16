@@ -23,10 +23,14 @@ export default async function JadwalPage({ searchParams }: { searchParams: Promi
   const [{ data: slots }, { data: talents }, { data: accounts }] = await Promise.all([
     q,
     supabase.from("v_talent_directory").select("id, nickname"),
-    supabase.from("live_accounts").select("code, name").eq("is_active", true).order("name"),
+    supabase.from("live_accounts").select("code, name, rooms(name)").eq("is_active", true).order("name"),
   ]);
   const nick = new Map((talents ?? []).map((t) => [t.id, t.nickname]));
   const accName = new Map((accounts ?? []).map((a) => [a.code, a.name]));
+  const roomName = new Map((accounts ?? []).map((a) => {
+    const r = (a as { rooms?: { name: string } | { name: string }[] | null }).rooms;
+    return [a.code, (Array.isArray(r) ? r[0]?.name : r?.name) ?? null] as const;
+  }));
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const link = (p: Record<string, string | undefined>) => {
     const s = new URLSearchParams();
@@ -76,6 +80,7 @@ export default async function JadwalPage({ searchParams }: { searchParams: Promi
                     <strong>{jam(s.start_at)}–{jam(s.end_at)}</strong>
                     {accName.get(s.account_code) ?? s.account_code}
                     <div>{nick.get(s.talent_id) ?? "?"}{s.is_event ? ", event" : ""}</div>
+                    {roomName.get(s.account_code) && <div style={{ opacity: 0.8 }}>{roomName.get(s.account_code)}</div>}
                   </div>
                 ))}
               </div>
