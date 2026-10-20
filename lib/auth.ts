@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export type Me = {
@@ -8,7 +9,11 @@ export type Me = {
   role: "admin" | "talent";
   talentId: string | null;
   nickname: string | null;
+  /** true bila admin sedang memakai mode akun bayangan (lihat sebagai talent, hanya baca) */
+  impersonating?: boolean;
 };
+
+export const VIEW_AS_COOKIE = "lh_view_as";
 
 export const getMe = cache(async function getMe(): Promise<Me> {
   const supabase = await createClient();
@@ -23,7 +28,15 @@ export const getMe = cache(async function getMe(): Promise<Me> {
   if (!profile) redirect("/auth/keluar");
   const t = profile.talents as unknown as { nickname: string } | { nickname: string }[] | null;
   const nickname = (Array.isArray(t) ? t[0]?.nickname : t?.nickname) ?? null;
-  return { userId: user.id, email: user.email ?? null, role: profile.role, talentId: profile.talent_id, nickname };
+  const me: Me = { userId: user.id, email: user.email ?? null, role: profile.role, talentId: profile.talent_id, nickname };
+  if (me.role === "admin") {
+    const viewAs = (await cookies()).get(VIEW_AS_COOKIE)?.value;
+    if (viewAs && /^[0-9a-f-]{36}$/i.test(viewAs)) {
+      const { data: tv } = await supabase.from("talents").select("id, nickname").eq("id", viewAs).maybeSingle();
+      if (tv) return { ...me, role: "talent", talentId: tv.id, nickname: tv.nickname, impersonating: true };
+    }
+  }
+  return me;
 });
 
 export async function requireAdmin(): Promise<Me> {

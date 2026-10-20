@@ -3,7 +3,9 @@ import { hariIni } from "@/lib/time";
 
 type Opt = { value: string; label: string };
 
-export function LiveForm({ accounts, talents, from }: { accounts: Opt[]; talents?: Opt[]; from: string }) {
+export type LiveDefaults = { account?: string; platform?: string; date?: string; talent?: string };
+
+export function LiveForm({ accounts, talents, from, defaults = {} }: { accounts: Opt[]; talents?: Opt[]; from: string; defaults?: LiveDefaults }) {
   return (
     <form action={simpanLive} className="form">
       <input type="hidden" name="from" value={from} />
@@ -13,7 +15,7 @@ export function LiveForm({ accounts, talents, from }: { accounts: Opt[]; talents
           {talents && (
             <div className="field">
               <label htmlFor="talent_id">Talent</label>
-              <select id="talent_id" name="talent_id" required defaultValue="">
+              <select id="talent_id" name="talent_id" required defaultValue={defaults.talent ?? ""}>
                 <option value="" disabled>Pilih talent</option>
                 {talents.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
@@ -21,21 +23,21 @@ export function LiveForm({ accounts, talents, from }: { accounts: Opt[]; talents
           )}
           <div className="field">
             <label htmlFor="account_code">Akun live</label>
-            <select id="account_code" name="account_code" required defaultValue="">
+            <select id="account_code" name="account_code" required defaultValue={defaults.account ?? ""}>
               <option value="" disabled>Pilih akun</option>
               {accounts.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
           </div>
           <div className="field">
             <label htmlFor="platform">Platform</label>
-            <select id="platform" name="platform" defaultValue="tiktok">
+            <select id="platform" name="platform" defaultValue={defaults.platform === "instagram" ? "instagram" : "tiktok"}>
               <option value="tiktok">TikTok</option>
               <option value="instagram">Instagram</option>
             </select>
           </div>
           <div className="field">
             <label htmlFor="session_date">Tanggal</label>
-            <input id="session_date" name="session_date" type="date" required defaultValue={hariIni()} />
+            <input id="session_date" name="session_date" type="date" required defaultValue={defaults.date ?? hariIni()} />
           </div>
           <div className="field">
             <label htmlFor="start_time">Jam mulai (WIB)</label>
@@ -102,7 +104,11 @@ export function LiveForm({ accounts, talents, from }: { accounts: Opt[]; talents
           <textarea id="evaluation" name="evaluation" />
         </div>
       )}
-      <div className="row"><button className="btn" type="submit">Simpan data live</button></div>
+      <div className="row">
+        <button className="btn" type="submit">Simpan data live</button>
+        <button className="btn btn-ghost" type="submit" name="lanjut" value="1">Simpan &amp; isi sesi berikutnya</button>
+      </div>
+      <p className="small muted">Satu sesi bisa punya beberapa data live (misalnya live terputus lalu lanjut, atau live 2 kali). Isi satu per satu.</p>
     </form>
   );
 }

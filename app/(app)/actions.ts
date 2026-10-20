@@ -11,9 +11,15 @@ function back(path: string, params: Record<string, string>): never {
   redirect(`${path}${q ? `?${q}` : ""}`);
 }
 
+/** Mode akun bayangan hanya untuk melihat: semua aksi simpan ditolak. */
+function readOnly(me: { impersonating?: boolean }, path: string) {
+  if (me.impersonating) back(path, { e: "Mode akun bayangan hanya untuk melihat. Keluar dari mode ini untuk menyimpan data." });
+}
+
 // ---------------------------------------------------------------- absen
 export async function absen(formData: FormData) {
   const me = await getMe();
+  readOnly(me, "/");
   const slotId = String(formData.get("slot_id") ?? "");
   if (!me.talentId) back("/", { e: "Akun ini tidak tertaut ke talent." });
   const supabase = await createClient();
@@ -29,7 +35,8 @@ export async function absen(formData: FormData) {
 }
 
 export async function selesaiLive(formData: FormData) {
-  await getMe();
+  const me = await getMe();
+  readOnly(me, "/");
   const slotId = String(formData.get("slot_id") ?? "");
   const supabase = await createClient();
   // nilai checked_out_at dikunci ke jam server oleh trigger
@@ -55,6 +62,7 @@ function text(v: FormDataEntryValue | null): string | null {
 
 export async function simpanLive(formData: FormData) {
   const me = await getMe();
+  readOnly(me, String(formData.get("from") ?? "/live"));
   const from = String(formData.get("from") ?? "/live");
   const isAdmin = me.role === "admin";
   const talentId = isAdmin ? text(formData.get("talent_id")) : me.talentId;
@@ -105,6 +113,11 @@ export async function simpanLive(formData: FormData) {
   });
   if (error) back(`${from}/baru`, { e: `Gagal menyimpan: ${error.message}` });
   revalidatePath(from);
+  if (formData.get("lanjut") === "1") {
+    const keep: Record<string, string> = { ok: "live-lanjut", akun: account ?? "", pf: platform, tgl: date };
+    if (isAdmin && talentId) keep.t = talentId;
+    back(`${from}/baru`, keep);
+  }
   back(from, { ok: "live" });
 }
 
@@ -113,6 +126,7 @@ const LEAVE_TYPES = ["sakit", "izin", "cuti", "lainnya"] as const;
 
 export async function ajukanIzin(formData: FormData) {
   const me = await getMe();
+  readOnly(me, "/izin");
   if (!me.talentId) back("/izin", { e: "Akun ini tidak tertaut ke talent." });
   const type = String(formData.get("type") ?? "");
   const start = String(formData.get("start_date") ?? "");
@@ -133,7 +147,8 @@ export async function ajukanIzin(formData: FormData) {
 }
 
 export async function batalkanIzin(formData: FormData) {
-  await getMe();
+  const me = await getMe();
+  readOnly(me, "/izin");
   const id = String(formData.get("id") ?? "");
   const supabase = await createClient();
   const { error } = await supabase.from("leave_requests").update({ status: "cancelled" }).eq("id", id).eq("status", "pending");
@@ -144,7 +159,8 @@ export async function batalkanIzin(formData: FormData) {
 
 // ---------------------------------------------------------------- akun
 export async function gantiSandi(formData: FormData) {
-  await getMe();
+  const me = await getMe();
+  readOnly(me, "/akun");
   const a = String(formData.get("password") ?? "");
   const b = String(formData.get("password2") ?? "");
   if (a.length < 8) back("/akun", { e: "Kata sandi minimal 8 karakter." });
@@ -157,7 +173,8 @@ export async function gantiSandi(formData: FormData) {
 
 // ---------------------------------------------------------------- absen di luar jadwal (dilaporkan talent)
 export async function absenLuarJadwal(formData: FormData) {
-  await getMe();
+  const me = await getMe();
+  readOnly(me, "/");
   const kind = String(formData.get("kind") ?? "");
   const slot = String(formData.get("slot_id") ?? "") || null;
   const account = String(formData.get("account_code") ?? "") || null;

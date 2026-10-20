@@ -94,6 +94,7 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
             {roomOf(focus.account_code).device && <span className="room-pill">{roomOf(focus.account_code).device}</span>}
           </div>
         )}
+        {focus.session_count > 0 && <p className="meta"><strong>{focus.session_count} data live tercatat</strong>, total {menitKeJam(focus.live_minutes)}. Masih live lagi? Tambahkan datanya.</p>}
         {focus.jam_absen && <p className="meta">Absen pukul {focus.jam_absen}{focus.check_in_source === "data_live" ? " (dari data live)" : ""}</p>}
 
         {inWindow && !c && (
@@ -110,11 +111,11 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
             <form action={selesaiLive} className="row" style={{ marginTop: 12 }}>
               <input type="hidden" name="slot_id" value={focus.slot_id} />
               <button className="btn" type="submit">Selesai live</button>
-              <Link className="btn btn-ghost" href="/live/baru">Isi data live</Link>
+              <Link className="btn btn-ghost" href={`/live/baru?akun=${focus.account_code}&tgl=${focus.slot_date}`}>{focus.session_count > 0 ? "Tambah data live" : "Isi data live"}</Link>
             </form>
           </>
         )}
-        {done && <Link className="btn" href="/live/baru" style={{ marginTop: 14 }}>Isi data live</Link>}
+        {done && <Link className="btn" href={`/live/baru?akun=${focus.account_code}&tgl=${focus.slot_date}`} style={{ marginTop: 14 }}>{focus.session_count > 0 ? "Tambah data live" : "Isi data live"}</Link>}
       </section>
     );
   }

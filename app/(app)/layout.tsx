@@ -4,6 +4,8 @@ import { logout } from "@/app/login/actions";
 import { NavLinks, type NavItem } from "@/components/NavLinks";
 import { featureOn } from "@/lib/features";
 import { displayLogin } from "@/lib/username";
+import { DataLiveReminder } from "@/components/DataLiveReminder";
+import { selesaiLihatSebagai } from "@/app/lihat-sebagai/actions";
 
 const TALENT_NAV: NavItem[] = [
   { href: "/", label: "Hari ini" },
@@ -85,6 +87,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="mobile-top">
           <div className="brand"><span className="brand-name"><span className="brand-dot" aria-hidden />Live Hub</span></div>
         </div>
+        {me.impersonating && (
+          <div className="notice shadow-mode" role="status">
+            <div className="row" style={{ justifyContent: "space-between" }}>
+              <span><strong>Mode akun bayangan:</strong> kamu melihat Live Hub sebagai <strong>{me.nickname}</strong>. Hanya melihat, tidak bisa menyimpan.</span>
+              <form action={selesaiLihatSebagai}><button className="btn btn-sm" type="submit">Kembali ke admin</button></form>
+            </div>
+          </div>
+        )}
+        {!isAdmin && me.talentId && <DataLiveReminder talentId={me.talentId} />}
         {children}
       </main>
 

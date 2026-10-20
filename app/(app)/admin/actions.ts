@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, VIEW_AS_COOKIE } from "@/lib/auth";
+import { cookies } from "next/headers";
 import { addDays, isYmd, keISO } from "@/lib/time";
 import { toLoginEmail, validUsername } from "@/lib/username";
 
@@ -524,4 +525,14 @@ export async function aturAktifRuangan(formData: FormData) {
   await supabase.from("rooms").update({ is_active: formData.get("active") === "1" }).eq("id", s(formData.get("id")));
   revalidatePath("/admin/ruangan");
   back("/admin/ruangan", { ok: "ruangan" });
+}
+
+
+// ---------------------------------------------------------------- mode akun bayangan
+export async function mulaiLihatSebagai(formData: FormData) {
+  await requireAdmin();
+  const id = s(formData.get("talent_id"));
+  if (!/^[0-9a-f-]{36}$/i.test(id)) back("/admin/talent", { e: "Pilih talent dulu." });
+  (await cookies()).set(VIEW_AS_COOKIE, id, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: 60 * 60 * 4 });
+  redirect("/");
 }

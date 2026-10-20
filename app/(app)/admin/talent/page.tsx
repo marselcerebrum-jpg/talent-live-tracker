@@ -1,7 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Notice } from "@/components/Notice";
-import { aturAktif, buatAkun, resetSandi, simpanTalent } from "../actions";
+import { aturAktif, buatAkun, mulaiLihatSebagai, resetSandi, simpanTalent } from "../actions";
 import { displayLogin } from "@/lib/username";
 
 export default async function AdminTalent({ searchParams }: { searchParams: Promise<{ ok?: string; e?: string }> }) {
@@ -21,6 +21,17 @@ export default async function AdminTalent({ searchParams }: { searchParams: Prom
     <>
       <div className="page-head"><div><h1>Talent & akun</h1><p>{(talents ?? []).filter((t) => t.is_active).length} talent aktif, {account.size} sudah punya akun login.</p></div></div>
       <Notice ok={sp.ok} e={sp.e} />
+      <section className="panel" style={{ marginBottom: 20 }}>
+        <div className="panel-head"><h2>Mode akun bayangan</h2><span className="small muted">lihat aplikasi persis seperti talent, hanya baca</span></div>
+        <form action={mulaiLihatSebagai} className="row">
+          <select name="talent_id" required defaultValue="" aria-label="Talent" style={{ width: "auto", minWidth: 200 }}>
+            <option value="" disabled>Pilih talent</option>
+            {(talents ?? []).filter((t) => t.is_active).map((t) => <option key={t.id} value={t.id}>{t.nickname}</option>)}
+          </select>
+          <button className="btn" type="submit">Lihat sebagai talent</button>
+        </form>
+        <p className="metric-note">Semua tombol simpan, absen, dan izin dinonaktifkan selama mode ini. Mode berakhir otomatis setelah 4 jam, atau tekan Kembali ke admin.</p>
+      </section>
 
       <section className="panel">
         <div className="table-wrap"><table>

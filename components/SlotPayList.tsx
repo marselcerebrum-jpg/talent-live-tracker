@@ -16,7 +16,7 @@ export function SlotPayList({ rows, accName }: { rows: SlotPay[]; accName: Map<s
           <div>
             <div className="t">{tanggalPendek(r.slot_date)} <span className="s">sesi {r.sesi}, {r.sesi_label}</span></div>
             <div className="s">{r.accounts.map((a) => accName.get(a) ?? a).join(", ")}, live {menitKeJam(r.live_minutes)}{r.slot_count > 1 ? ` (gabungan ${r.slot_count} slot)` : ""}</div>
-            {r.menunggu_data_live && <div className="chg"><span className="badge badge-pending">menunggu data live (maks. 3 jam setelah sesi)</span></div>}
+            {r.menunggu_data_live && <div className="chg"><span className="badge badge-pending">menunggu data live (batas 1 hari setelah sesi)</span></div>}
             {r.pelanggaran.length > 0 && (
               <div className="chg">{r.pelanggaran.map((p) => <span key={p} className="badge badge-alpha">{p}</span>)}</div>
             )}

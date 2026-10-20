@@ -2,6 +2,7 @@ const OK: Record<string, string> = {
   absen: "Absen tercatat.",
   "luar-jadwal": "Absen di luar jadwal tercatat dan dilaporkan ke admin.",
   selesai: "Absen selesai tercatat.",
+  "live-lanjut": "Data live tersimpan. Silakan isi sesi berikutnya, akun dan tanggal sudah terisi.",
   live: "Data live tersimpan.",
   izin: "Pengajuan izin terkirim. Admin akan meninjau.",
   batal: "Pengajuan izin dibatalkan.",
