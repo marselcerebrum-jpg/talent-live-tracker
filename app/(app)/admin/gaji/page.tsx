@@ -1,3 +1,4 @@
+// Lokasi di GitHub: app/(app)/admin/gaji/page.tsx
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -45,6 +46,10 @@ export default async function AdminGaji({ searchParams }: { searchParams: Promis
         <span className="sticker">{rupiah(total.gaji)}</span>
       </div>
       <PeriodPicker base="/admin/gaji" period={period} startDay={day} />
+      <div className="row" style={{ marginTop: -8, marginBottom: 20 }}>
+        <a className="btn" href={`/api/export/gaji?from=${period.start}&to=${period.end}`} download>Unduh Excel ({period.label})</a>
+        <span className="small muted">Isi: ringkasan per talent (aplikasi, sesi, kehadiran, kode promo, total gaji) dan rincian per sesi.</span>
+      </div>
 
       <div className="stats" style={{ marginBottom: 20 }}>
         <div className="stat"><strong>{rupiah(total.gaji)}</strong><span>Total estimasi gaji</span></div>
