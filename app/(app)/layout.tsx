@@ -1,3 +1,4 @@
+// Lokasi di GitHub: app/(app)/layout.tsx
 import Link from "next/link";
 import { getMe } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
@@ -32,6 +33,7 @@ const ADMIN_HARIAN: NavItem[] = [
 ];
 const ADMIN_ANALISIS: NavItem[] = [
   { href: "/admin/gaji", label: "Estimasi gaji" },
+  { href: "/admin/pelanggaran", label: "Pelanggaran" },
   { href: "/admin/live", label: "Data live tim" },
   { href: "/admin/performa", label: "Performa live" },
   { href: "/admin/promo", label: "Kode promo" },
