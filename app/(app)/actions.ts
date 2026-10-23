@@ -1,117 +1,213 @@
-// Lokasi di GitHub: components/LiveForm.tsx
-import { LiveGuard, type GuardData } from "@/components/LiveGuard";
-import { simpanLive } from "@/app/(app)/actions";
-import { hariIni } from "@/lib/time";
+"use server";
+// Lokasi di GitHub: app/(app)/actions.ts
 
-type Opt = { value: string; label: string };
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+import { getMe } from "@/lib/auth";
+import { isYmd, keISO } from "@/lib/time";
 
-export type LiveDefaults = { account?: string; platform?: string; date?: string; talent?: string; time?: string };
+function back(path: string, params: Record<string, string>): never {
+  const q = new URLSearchParams(params).toString();
+  redirect(`${path}${q ? `?${q}` : ""}`);
+}
 
-export function LiveForm({ accounts, talents, from, defaults = {}, guard }: { accounts: Opt[]; talents?: Opt[]; from: string; defaults?: LiveDefaults; guard?: GuardData }) {
-  return (
-    <form action={simpanLive} className="form">
-      <LiveGuard data={guard} />
-      <input type="hidden" name="from" value={from} />
-      <fieldset>
-        <legend>Sesi live</legend>
-        <div className="form-grid">
-          {talents && (
-            <div className="field">
-              <label htmlFor="talent_id">Talent</label>
-              <select id="talent_id" name="talent_id" required defaultValue={defaults.talent ?? ""}>
-                <option value="" disabled>Pilih talent</option>
-                {talents.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
-          )}
-          <div className="field">
-            <label htmlFor="account_code">Akun live</label>
-            <select id="account_code" name="account_code" required defaultValue={defaults.account ?? ""}>
-              <option value="" disabled>Pilih akun</option>
-              {accounts.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="platform">Platform</label>
-            <select id="platform" name="platform" defaultValue={defaults.platform === "instagram" ? "instagram" : "tiktok"}>
-              <option value="tiktok">TikTok</option>
-              <option value="instagram">Instagram</option>
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="session_date">Tanggal</label>
-            <input id="session_date" name="session_date" type="date" required defaultValue={defaults.date ?? hariIni()} />
-          </div>
-          <div className="field">
-            <label htmlFor="start_time">Jam mulai (WIB)</label>
-            <input id="start_time" name="start_time" type="time" required autoComplete="off" defaultValue={defaults.time ?? ""} />
-          </div>
-          <div className="field">
-            <label htmlFor="duration_minutes">Durasi (menit)</label>
-            <input id="duration_minutes" name="duration_minutes" type="number" min={1} max={600} inputMode="numeric" required />
-            <span className="hint">Dipakai untuk menghitung gaji.</span>
-          </div>
-        </div>
-      </fieldset>
+/** Mode akun bayangan hanya untuk melihat: semua aksi simpan ditolak. */
+function readOnly(me: { impersonating?: boolean }, path: string) {
+  if (me.impersonating) back(path, { e: "Mode akun bayangan hanya untuk melihat. Keluar dari mode ini untuk menyimpan data." });
+}
 
-      <details className="more" open>
-        <summary>Statistik TikTok</summary>
-      <fieldset>
-        <div className="form-grid">
-          {[
-            ["total_views", "Total tayangan"],
-            ["unique_viewers", "Penonton unik"],
-            ["active_viewers", "Penonton aktif"],
-            ["avg_watch_seconds", "Rata-rata durasi menonton (detik)"],
-            ["peak_concurrent", "Penonton bersamaan tertinggi"],
-            ["avg_concurrent", "Rata-rata penonton bersamaan"],
-          ].map(([n, l]) => (
-            <div className="field" key={n}>
-              <label htmlFor={n}>{l}</label>
-              <input id={n} name={n} type="number" min={0} inputMode="numeric" />
-            </div>
-          ))}
-        </div>
-      </fieldset>
+// ---------------------------------------------------------------- absen
+export async function absen(formData: FormData) {
+  const me = await getMe();
+  readOnly(me, "/");
+  const slotId = String(formData.get("slot_id") ?? "");
+  if (!me.talentId) back("/", { e: "Akun ini tidak tertaut ke talent." });
+  const supabase = await createClient();
+  const { error } = await supabase.from("attendance_checkins").insert({ slot_id: slotId, talent_id: me.talentId });
+  if (error) {
+    const msg = error.code === "23505"
+      ? "Kamu sudah absen untuk slot ini."
+      : "Absen hanya bisa dilakukan mulai 60 menit sebelum slot dibuka sampai slot ditutup.";
+    back("/", { e: msg });
+  }
+  revalidatePath("/");
+  back("/", { ok: "absen" });
+}
 
-      </details>
-      <details className="more">
-        <summary>Statistik Instagram (kalau live di IG)</summary>
-      <fieldset>
-        <div className="form-grid">
-          {[
-            ["ig_reach", "Jangkauan"],
-            ["ig_peak_concurrent", "Penonton bersamaan tertinggi"],
-            ["ig_engaged", "Akun yang berinteraksi"],
-          ].map(([n, l]) => (
-            <div className="field" key={n}>
-              <label htmlFor={n}>{l}</label>
-              <input id={n} name={n} type="number" min={0} inputMode="numeric" />
-            </div>
-          ))}
-        </div>
-      </fieldset>
+export async function selesaiLive(formData: FormData) {
+  const me = await getMe();
+  readOnly(me, "/");
+  const slotId = String(formData.get("slot_id") ?? "");
+  const supabase = await createClient();
+  // nilai checked_out_at dikunci ke jam server oleh trigger
+  const { error } = await supabase.from("attendance_checkins")
+    .update({ checked_out_at: new Date().toISOString() })
+    .eq("slot_id", slotId);
+  if (error) back("/", { e: "Gagal mencatat selesai live. Coba lagi." });
+  revalidatePath("/");
+  back("/", { ok: "selesai" });
+}
 
-      </details>
-      <div className="field">
-        <label htmlFor="topic">Materi</label>
-        <input id="topic" name="topic" placeholder="Contoh: Bahas latihan soal TWK" />
-      </div>
-      <div className="field">
-        <label htmlFor="notes">Catatan</label>
-        <textarea id="notes" name="notes" placeholder="Kendala teknis, pertanyaan penonton yang sering muncul, dll." />
-      </div>
-      {talents && (
-        <div className="field">
-          <label htmlFor="evaluation">Evaluasi (admin)</label>
-          <textarea id="evaluation" name="evaluation" />
-        </div>
-      )}
-      <div className="row">
-        <button className="btn" type="submit">Simpan data live</button>
-        <button className="btn btn-ghost" type="submit" name="lanjut" value="1">Simpan &amp; isi sesi berikutnya</button>
-      </div>
-      <p className="small muted">Satu sesi bisa punya beberapa data live (misalnya live terputus lalu lanjut, atau live 2 kali). Isi satu per satu.</p>
-    </form>
-  );
+// ---------------------------------------------------------------- data live
+function int(v: FormDataEntryValue | null): number | null {
+  const s = String(v ?? "").trim().replace(/[.\s]/g, "").replace(",", ".");
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+}
+function text(v: FormDataEntryValue | null): string | null {
+  const s = String(v ?? "").trim();
+  return s ? s : null;
+}
+
+export async function simpanLive(formData: FormData) {
+  const me = await getMe();
+  readOnly(me, String(formData.get("from") ?? "/live"));
+  const from = String(formData.get("from") ?? "/live");
+  const isAdmin = me.role === "admin";
+  const talentId = isAdmin ? text(formData.get("talent_id")) : me.talentId;
+  const account = text(formData.get("account_code"));
+  const platform = formData.get("platform") === "instagram" ? "instagram" : "tiktok";
+  const date = String(formData.get("session_date") ?? "");
+  const time = String(formData.get("start_time") ?? "");
+  const duration = int(formData.get("duration_minutes"));
+
+  const errs: string[] = [];
+  if (!talentId) errs.push("pilih talent");
+  if (!account) errs.push("pilih akun live");
+  if (!isYmd(date)) errs.push("isi tanggal");
+  if (!/^\d{2}:\d{2}$/.test(time)) errs.push("isi jam mulai");
+  if (duration === null || duration < 1 || duration > 600) errs.push("isi durasi 1–600 menit");
+  if (errs.length) back(`${from}/baru`, { e: `Data belum lengkap: ${errs.join(", ")}.` });
+
+  const views = int(formData.get("total_views"));
+  const unique = int(formData.get("unique_viewers"));
+  const reasons: string[] = [];
+  if (views !== null && unique !== null && views < unique) reasons.push(`total tayangan (${views}) < penonton unik (${unique})`);
+
+  const supabase = await createClient();
+
+  // Poka-yoke: tolak bila bentrok (>5 menit) dengan data live yang sudah tersimpan di akun & tanggal yang sama
+  const startAt = new Date(keISO(date, time));
+  const endAt = new Date(startAt.getTime() + (duration ?? 0) * 60000);
+  const { data: same } = await supabase.from("live_sessions").select("started_at, duration_minutes")
+    .eq("talent_id", talentId!).eq("account_code", account!).eq("platform", platform).eq("session_date", date)
+    .not("started_at", "is", null);
+  const clash = (same ?? []).find((x) => {
+    const a = new Date(x.started_at as string).getTime();
+    const b = a + (x.duration_minutes ?? 0) * 60000;
+    return Math.min(b, endAt.getTime()) - Math.max(a, startAt.getTime()) > 5 * 60000;
+  });
+  if (clash) {
+    const a = new Date(clash.started_at as string);
+    const hm = (d: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit" }).format(d);
+    back(`${from}/baru`, {
+      e: `Jam ${time} bentrok dengan data live yang sudah tersimpan (mulai ${hm(a)}, ${clash.duration_minutes ?? 0} menit). Periksa lagi jam mulainya.`,
+      akun: account ?? "", pf: platform, tgl: date, ...(isAdmin && talentId ? { t: talentId } : {}),
+    });
+  }
+
+  const { error } = await supabase.from("live_sessions").insert({
+    account_code: account,
+    platform,
+    talent_id: talentId,
+    talent_source: isAdmin ? "admin" : "input",
+    session_date: date,
+    started_at: keISO(date, time),
+    duration_minutes: duration,
+    total_views: views,
+    unique_viewers: unique,
+    active_viewers: int(formData.get("active_viewers")),
+    avg_watch_seconds: int(formData.get("avg_watch_seconds")),
+    peak_concurrent: int(formData.get("peak_concurrent")),
+    avg_concurrent: int(formData.get("avg_concurrent")),
+    ig_reach: int(formData.get("ig_reach")),
+    ig_peak_concurrent: int(formData.get("ig_peak_concurrent")),
+    ig_engaged: int(formData.get("ig_engaged")),
+    topic: text(formData.get("topic")),
+    notes: text(formData.get("notes")),
+    evaluation: isAdmin ? text(formData.get("evaluation")) : null,
+    review_status: reasons.length ? "needs_review" : "ok",
+    review_reasons: reasons,
+    source: "app",
+    created_by: me.userId,
+  });
+  if (error) back(`${from}/baru`, { e: `Gagal menyimpan: ${error.message}` });
+  revalidatePath(from);
+  if (formData.get("lanjut") === "1") {
+    const next = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit" }).format(endAt);
+    const keep: Record<string, string> = { ok: "live-lanjut", akun: account ?? "", pf: platform, tgl: date, jam: next };
+    if (isAdmin && talentId) keep.t = talentId;
+    back(`${from}/baru`, keep);
+  }
+  back(from, { ok: "live" });
+}
+
+// ---------------------------------------------------------------- izin
+const LEAVE_TYPES = ["sakit", "izin", "cuti", "lainnya"] as const;
+
+export async function ajukanIzin(formData: FormData) {
+  const me = await getMe();
+  readOnly(me, "/izin");
+  if (!me.talentId) back("/izin", { e: "Akun ini tidak tertaut ke talent." });
+  const type = String(formData.get("type") ?? "");
+  const start = String(formData.get("start_date") ?? "");
+  const end = String(formData.get("end_date") ?? "") || start;
+  const reason = text(formData.get("reason"));
+  if (!LEAVE_TYPES.includes(type as (typeof LEAVE_TYPES)[number]) || !isYmd(start) || !isYmd(end) || !reason) {
+    back("/izin", { e: "Pilih jenis izin, isi tanggal, dan tulis alasannya." });
+  }
+  if (end < start) back("/izin", { e: "Tanggal selesai tidak boleh sebelum tanggal mulai." });
+  const supabase = await createClient();
+  const { error } = await supabase.from("leave_requests").insert({
+    talent_id: me.talentId, type, start_date: start, end_date: end, reason,
+    attachment_url: text(formData.get("attachment_url")),
+  });
+  if (error) back("/izin", { e: `Gagal mengirim: ${error.message}` });
+  revalidatePath("/izin");
+  back("/izin", { ok: "izin" });
+}
+
+export async function batalkanIzin(formData: FormData) {
+  const me = await getMe();
+  readOnly(me, "/izin");
+  const id = String(formData.get("id") ?? "");
+  const supabase = await createClient();
+  const { error } = await supabase.from("leave_requests").update({ status: "cancelled" }).eq("id", id).eq("status", "pending");
+  if (error) back("/izin", { e: "Pengajuan ini tidak bisa dibatalkan lagi." });
+  revalidatePath("/izin");
+  back("/izin", { ok: "batal" });
+}
+
+// ---------------------------------------------------------------- akun
+export async function gantiSandi(formData: FormData) {
+  const me = await getMe();
+  readOnly(me, "/akun");
+  const a = String(formData.get("password") ?? "");
+  const b = String(formData.get("password2") ?? "");
+  if (a.length < 8) back("/akun", { e: "Kata sandi minimal 8 karakter." });
+  if (a !== b) back("/akun", { e: "Kedua kata sandi tidak sama." });
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password: a });
+  if (error) back("/akun", { e: `Gagal: ${error.message}` });
+  back("/akun", { ok: "sandi" });
+}
+
+// ---------------------------------------------------------------- absen di luar jadwal (dilaporkan talent)
+export async function absenLuarJadwal(formData: FormData) {
+  const me = await getMe();
+  readOnly(me, "/");
+  const kind = String(formData.get("kind") ?? "");
+  const slot = String(formData.get("slot_id") ?? "") || null;
+  const account = String(formData.get("account_code") ?? "") || null;
+  const note = String(formData.get("note") ?? "").trim() || null;
+  const permitted = String(formData.get("permitted_by") ?? "").trim() || null;
+  if (kind !== "tidak_sesuai" && !slot) back("/", { e: "Pilih slotnya dulu." });
+  if (kind !== "tidak_sesuai" && !permitted) back("/", { e: "Pilih sudah izin ke siapa." });
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("absen_luar_jadwal", { p_kind: kind, p_slot_id: slot, p_account: account, p_note: note, p_permitted_by: permitted });
+  if (error) back("/", { e: error.message });
+  revalidatePath("/");
+  back("/", { ok: "luar-jadwal" });
 }
