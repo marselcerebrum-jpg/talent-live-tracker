@@ -1,73 +1,117 @@
-"use client";
+// Lokasi di GitHub: components/LiveForm.tsx
+import { LiveGuard, type GuardData } from "@/components/LiveGuard";
+import { simpanLive } from "@/app/(app)/actions";
+import { hariIni } from "@/lib/time";
 
-import { useEffect, useRef, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+type Opt = { value: string; label: string };
 
-/**
- * Penanda loading global:
- * - garis progres di atas layar saat pindah halaman atau mengirim form
- * - spinner + nonaktif di tombol yang ditekan (mencegah klik dobel)
- * Selesai otomatis saat alamat halaman berubah (navigasi / redirect setelah simpan).
- */
-export function NavProgress() {
-  const pathname = usePathname();
-  const search = useSearchParams();
-  const [active, setActive] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+export type LiveDefaults = { account?: string; platform?: string; date?: string; talent?: string; time?: string };
 
-  const stop = () => {
-    setActive(false);
-    document.querySelectorAll(".is-loading").forEach((el) => {
-      el.classList.remove("is-loading");
-      (el as HTMLButtonElement).disabled = false;
-      el.removeAttribute("aria-busy");
-    });
-    if (timer.current) clearTimeout(timer.current);
-  };
-  const start = () => {
-    setActive(true);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(stop, 20000); // pengaman bila tidak ada perubahan alamat
-  };
+export function LiveForm({ accounts, talents, from, defaults = {}, guard }: { accounts: Opt[]; talents?: Opt[]; from: string; defaults?: LiveDefaults; guard?: GuardData }) {
+  return (
+    <form action={simpanLive} className="form">
+      <LiveGuard data={guard} />
+      <input type="hidden" name="from" value={from} />
+      <fieldset>
+        <legend>Sesi live</legend>
+        <div className="form-grid">
+          {talents && (
+            <div className="field">
+              <label htmlFor="talent_id">Talent</label>
+              <select id="talent_id" name="talent_id" required defaultValue={defaults.talent ?? ""}>
+                <option value="" disabled>Pilih talent</option>
+                {talents.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+          )}
+          <div className="field">
+            <label htmlFor="account_code">Akun live</label>
+            <select id="account_code" name="account_code" required defaultValue={defaults.account ?? ""}>
+              <option value="" disabled>Pilih akun</option>
+              {accounts.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="platform">Platform</label>
+            <select id="platform" name="platform" defaultValue={defaults.platform === "instagram" ? "instagram" : "tiktok"}>
+              <option value="tiktok">TikTok</option>
+              <option value="instagram">Instagram</option>
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="session_date">Tanggal</label>
+            <input id="session_date" name="session_date" type="date" required defaultValue={defaults.date ?? hariIni()} />
+          </div>
+          <div className="field">
+            <label htmlFor="start_time">Jam mulai (WIB)</label>
+            <input id="start_time" name="start_time" type="time" required autoComplete="off" defaultValue={defaults.time ?? ""} />
+          </div>
+          <div className="field">
+            <label htmlFor="duration_minutes">Durasi (menit)</label>
+            <input id="duration_minutes" name="duration_minutes" type="number" min={1} max={600} inputMode="numeric" required />
+            <span className="hint">Dipakai untuk menghitung gaji.</span>
+          </div>
+        </div>
+      </fieldset>
 
-  // alamat berubah = navigasi sudah jalan; selesai setelah kerangka (loading.tsx) hilang dan data tampil
-  useEffect(() => {
-    let id: ReturnType<typeof setInterval> | null = null;
-    const done = () => !document.querySelector('[aria-label="Memuat halaman"]');
-    if (done()) stop();
-    else id = setInterval(() => { if (done()) { stop(); if (id) clearInterval(id); } }, 100);
-    return () => { if (id) clearInterval(id); };
-  }, [pathname, search]); // eslint-disable-line react-hooks/exhaustive-deps
+      <details className="more" open>
+        <summary>Statistik TikTok</summary>
+      <fieldset>
+        <div className="form-grid">
+          {[
+            ["total_views", "Total tayangan"],
+            ["unique_viewers", "Penonton unik"],
+            ["active_viewers", "Penonton aktif"],
+            ["avg_watch_seconds", "Rata-rata durasi menonton (detik)"],
+            ["peak_concurrent", "Penonton bersamaan tertinggi"],
+            ["avg_concurrent", "Rata-rata penonton bersamaan"],
+          ].map(([n, l]) => (
+            <div className="field" key={n}>
+              <label htmlFor={n}>{l}</label>
+              <input id={n} name={n} type="number" min={0} inputMode="numeric" />
+            </div>
+          ))}
+        </div>
+      </fieldset>
 
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      const a = (e.target as HTMLElement).closest("a");
-      if (!a || a.target || a.hasAttribute("download")) return;
-      const url = new URL(a.href, location.href);
-      if (url.origin !== location.origin) return;
-      if (url.pathname === location.pathname && url.search === location.search) return;
-      start();
-    };
-    const onSubmit = (e: SubmitEvent) => {
-      const form = e.target as HTMLFormElement;
-      const btn = (e.submitter as HTMLButtonElement | null) ?? form.querySelector<HTMLButtonElement>("button[type=submit], button:not([type])");
-      // form GET di halaman yang sama (filter) tetap dianggap navigasi
-      start();
-      if (btn) {
-        btn.classList.add("is-loading");
-        btn.setAttribute("aria-busy", "true");
-        // nonaktifkan setelah form terkirim, supaya tidak terkirim dua kali
-        setTimeout(() => { btn.disabled = true; }, 0);
-      }
-    };
-    document.addEventListener("click", onClick, true);
-    document.addEventListener("submit", onSubmit, true);
-    return () => {
-      document.removeEventListener("click", onClick, true);
-      document.removeEventListener("submit", onSubmit, true);
-    };
-  }, []);
+      </details>
+      <details className="more">
+        <summary>Statistik Instagram (kalau live di IG)</summary>
+      <fieldset>
+        <div className="form-grid">
+          {[
+            ["ig_reach", "Jangkauan"],
+            ["ig_peak_concurrent", "Penonton bersamaan tertinggi"],
+            ["ig_engaged", "Akun yang berinteraksi"],
+          ].map(([n, l]) => (
+            <div className="field" key={n}>
+              <label htmlFor={n}>{l}</label>
+              <input id={n} name={n} type="number" min={0} inputMode="numeric" />
+            </div>
+          ))}
+        </div>
+      </fieldset>
 
-  return <div className={`nav-progress${active ? " on" : ""}`} role="progressbar" aria-hidden={!active} aria-label="Memuat" />;
+      </details>
+      <div className="field">
+        <label htmlFor="topic">Materi</label>
+        <input id="topic" name="topic" placeholder="Contoh: Bahas latihan soal TWK" />
+      </div>
+      <div className="field">
+        <label htmlFor="notes">Catatan</label>
+        <textarea id="notes" name="notes" placeholder="Kendala teknis, pertanyaan penonton yang sering muncul, dll." />
+      </div>
+      {talents && (
+        <div className="field">
+          <label htmlFor="evaluation">Evaluasi (admin)</label>
+          <textarea id="evaluation" name="evaluation" />
+        </div>
+      )}
+      <div className="row">
+        <button className="btn" type="submit">Simpan data live</button>
+        <button className="btn btn-ghost" type="submit" name="lanjut" value="1">Simpan &amp; isi sesi berikutnya</button>
+      </div>
+      <p className="small muted">Satu sesi bisa punya beberapa data live (misalnya live terputus lalu lanjut, atau live 2 kali). Isi satu per satu.</p>
+    </form>
+  );
 }
