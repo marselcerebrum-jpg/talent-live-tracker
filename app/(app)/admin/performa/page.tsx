@@ -1,19 +1,20 @@
+// Lokasi di GitHub: app/(app)/admin/performa/page.tsx
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { jam, menitKeJam, tanggalPendek } from "@/lib/time";
 import { aggregate, daily, fmtNum, groupBy, type PerfRow } from "@/lib/perf";
-import { monthRange } from "@/components/AttendanceTable";
+import { dayLabel, resolveRange } from "@/lib/range";
 import { BarChart } from "@/components/Chart";
 import { PerfTable } from "@/components/PerfTable";
 import { DailyMatrix } from "@/components/DailyMatrix";
 
 const COLS = "id, talent_id, account_code, platform, session_date, started_at, duration_minutes, total_views, unique_viewers, peak_concurrent, avg_watch_seconds, active_viewers, topic";
 
-export default async function AdminPerforma({ searchParams }: { searchParams: Promise<{ m?: string; a?: string; t?: string; v?: string }> }) {
+export default async function AdminPerforma({ searchParams }: { searchParams: Promise<{ m?: string; from?: string; to?: string; a?: string; t?: string; v?: string }> }) {
   await requireAdmin();
   const sp = await searchParams;
-  const r = monthRange(sp.m);
+  const r = resolveRange(sp);
   const supabase = await createClient();
   let q = supabase.from("live_sessions").select(COLS).gte("session_date", r.start).lte("session_date", r.end);
   if (sp.a) q = q.eq("account_code", sp.a);
@@ -30,7 +31,7 @@ export default async function AdminPerforma({ searchParams }: { searchParams: Pr
   const perAkun = groupBy(rows, (x) => x.account_code).sort((a, b) => (b.viewsPerHour ?? 0) - (a.viewsPerHour ?? 0));
   const top = [...rows].filter((x) => x.total_views !== null).sort((a, b) => (b.total_views ?? 0) - (a.total_views ?? 0)).slice(0, 10);
   const qs = (p: Record<string, string | undefined>) =>
-    "/admin/performa?" + new URLSearchParams(Object.entries({ m: r.month, a: sp.a, t: sp.t, v: sp.v, ...p }).filter(([, v]) => v) as [string, string][]);
+    "/admin/performa?" + new URLSearchParams(Object.entries({ ...(r.custom ? { from: r.start, to: r.end } : { m: r.month }), a: sp.a, t: sp.t, v: sp.v, ...p }).filter(([, v]) => v) as [string, string][]);
   const view = sp.v === "talent" || sp.v === "akun" ? sp.v : "ringkasan";
 
   return (
@@ -38,8 +39,8 @@ export default async function AdminPerforma({ searchParams }: { searchParams: Pr
       <div className="page-head">
         <div><h1>Performa live</h1><p>{r.label}{sp.a ? `, akun ${acc.get(sp.a)}` : ""}{sp.t ? `, ${nick.get(sp.t)}` : ""}</p></div>
         <div className="row">
-          <Link className="btn btn-ghost btn-sm" href={qs({ m: r.prev })}>Bulan sebelumnya</Link>
-          <Link className="btn btn-ghost btn-sm" href={qs({ m: r.next })}>Bulan berikutnya</Link>
+          <Link className="btn btn-ghost btn-sm" href={qs({ m: r.prev, from: "", to: "" })}>Bulan sebelumnya</Link>
+          <Link className="btn btn-ghost btn-sm" href={qs({ m: r.next, from: "", to: "" })}>Bulan berikutnya</Link>
         </div>
       </div>
 
@@ -50,8 +51,9 @@ export default async function AdminPerforma({ searchParams }: { searchParams: Pr
       </nav>
 
       <form className="row" action="/admin/performa" style={{ marginBottom: 16 }}>
-        <input type="hidden" name="m" value={r.month} />
         {sp.v && <input type="hidden" name="v" value={sp.v} />}
+        <label className="row small" style={{ gap: 6 }}>Dari <input type="date" name="from" defaultValue={r.start} required style={{ width: "auto" }} /></label>
+        <label className="row small" style={{ gap: 6 }}>Sampai <input type="date" name="to" defaultValue={r.end} required style={{ width: "auto" }} /></label>
         <select name="a" defaultValue={sp.a ?? ""} aria-label="Akun" style={{ width: "auto" }}>
           <option value="">Semua akun</option>
           {(accounts ?? []).map((a) => <option key={a.code} value={a.code}>{a.name}</option>)}
@@ -90,7 +92,7 @@ export default async function AdminPerforma({ searchParams }: { searchParams: Pr
 
           <section className="panel">
             <div className="panel-head"><h2>Tayangan per hari</h2><span className="small muted">Batang gelap = hari tertinggi</span></div>
-            <BarChart title="Tayangan TikTok per hari" data={days.map((d) => ({ label: d.date.slice(8), value: d.views }))} />
+            <BarChart title="Tayangan TikTok per hari" data={days.map((d) => ({ label: dayLabel(d.date, r), value: d.views }))} />
           </section>
 
           <section className="panel">
