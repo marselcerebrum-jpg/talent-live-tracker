@@ -1,127 +1,127 @@
+// Lokasi di GitHub: app/(app)/admin/performa/page.tsx
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getMe } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { jam, menitKeJam, tanggalPendek } from "@/lib/time";
-import { aggregate, daily, delta, fmtNum, groupBy, type PerfRow } from "@/lib/perf";
-import { monthRange } from "@/components/AttendanceTable";
+import { aggregate, daily, fmtNum, groupBy, type PerfRow } from "@/lib/perf";
+import { dayLabel, resolveRange } from "@/lib/range";
 import { BarChart } from "@/components/Chart";
+import { PerfTable } from "@/components/PerfTable";
 import { DailyMatrix } from "@/components/DailyMatrix";
-import { attribute, sumBy, type PromoCode, type PromoDaily } from "@/lib/promo";
-import { rupiah } from "@/lib/time";
-import { featureOn } from "@/lib/features";
 
-type Bench = { account_code: string; sesi: number; talent_count: number; avg_views: number | null; avg_peak: number | null; avg_watch: number | null; views_per_hour: number | null };
+const COLS = "id, talent_id, account_code, platform, session_date, started_at, duration_minutes, total_views, unique_viewers, peak_concurrent, avg_watch_seconds, active_viewers, topic";
 
-function Delta({ v }: { v: number | null }) {
-  if (v === null) return <span className="muted">–</span>;
-  const r = Math.round(v);
-  return <span className={r >= 0 ? "delta-up" : "delta-down"}>{r >= 0 ? `${r}% di atas` : `${-r}% di bawah`}</span>;
-}
-
-export default async function PerformaSaya({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
-  const me = await getMe();
-  if (me.role === "admin") redirect("/admin/performa");
-  const { m } = await searchParams;
-  const r = monthRange(m);
+export default async function AdminPerforma({ searchParams }: { searchParams: Promise<{ m?: string; from?: string; to?: string; a?: string; t?: string; v?: string }> }) {
+  await requireAdmin();
+  const sp = await searchParams;
+  const r = resolveRange(sp);
   const supabase = await createClient();
-  const [{ data }, { data: bench }, { data: accounts }, { data: myCodes }, { data: promoDaily }] = await Promise.all([
-    supabase.from("live_sessions")
-      .select("id, talent_id, account_code, platform, session_date, started_at, duration_minutes, total_views, unique_viewers, peak_concurrent, avg_watch_seconds, active_viewers, topic")
-      .eq("talent_id", me.talentId!).gte("session_date", r.start).lte("session_date", r.end),
-    supabase.rpc("team_live_benchmark", { p_start: r.start, p_end: r.end }),
-    supabase.from("live_accounts").select("code, name"),
-    supabase.from("promo_codes").select("code, talent_id, account_code, centil_source_id, valid_from, valid_to, is_active").eq("talent_id", me.talentId!),
-    supabase.from("promo_sales_daily").select("centil_source_id, code, sale_date, trx_success, buyers_unique, revenue_idr").gte("sale_date", r.start).lte("sale_date", r.end),
+  let q = supabase.from("live_sessions").select(COLS).gte("session_date", r.start).lte("session_date", r.end);
+  if (sp.a) q = q.eq("account_code", sp.a);
+  if (sp.t) q = q.eq("talent_id", sp.t);
+  const [{ data }, { data: talents }, { data: accounts }] = await Promise.all([
+    q, supabase.from("talents").select("id, nickname").order("nickname"), supabase.from("live_accounts").select("code, name").order("name"),
   ]);
   const rows = (data ?? []) as PerfRow[];
-  const promoOn = await featureOn("feature_promo");
-  const promo = sumBy(attribute((promoDaily ?? []) as PromoDaily[], (myCodes ?? []) as PromoCode[]), (x) => x.code);
+  const nick = new Map((talents ?? []).map((t) => [t.id, t.nickname]));
   const acc = new Map((accounts ?? []).map((a) => [a.code, a.name]));
-  const team = new Map(((bench ?? []) as Bench[]).map((b) => [b.account_code, b]));
-  const mine = aggregate("me", rows);
-  const perAkun = groupBy(rows, (x) => x.account_code).sort((a, b) => b.sesi - a.sesi);
-  const best = [...rows].filter((x) => x.total_views !== null).sort((a, b) => (b.total_views ?? 0) - (a.total_views ?? 0)).slice(0, 5);
+  const total = aggregate("all", rows);
+  const days = daily(rows, r.start, r.end);
+  const perTalent = groupBy(rows, (x) => x.talent_id).sort((a, b) => (b.viewsPerHour ?? 0) - (a.viewsPerHour ?? 0));
+  const perAkun = groupBy(rows, (x) => x.account_code).sort((a, b) => (b.viewsPerHour ?? 0) - (a.viewsPerHour ?? 0));
+  const top = [...rows].filter((x) => x.total_views !== null).sort((a, b) => (b.total_views ?? 0) - (a.total_views ?? 0)).slice(0, 10);
+  const qs = (p: Record<string, string | undefined>) =>
+    "/admin/performa?" + new URLSearchParams(Object.entries({ ...(r.custom ? { from: r.start, to: r.end } : { m: r.month }), a: sp.a, t: sp.t, v: sp.v, ...p }).filter(([, v]) => v) as [string, string][]);
+  const view = sp.v === "talent" || sp.v === "akun" ? sp.v : "ringkasan";
 
   return (
     <>
       <div className="page-head">
-        <div><h1>Performa saya</h1><p>{r.label}</p></div>
+        <div><h1>Performa live</h1><p>{r.label}{sp.a ? `, akun ${acc.get(sp.a)}` : ""}{sp.t ? `, ${nick.get(sp.t)}` : ""}</p></div>
         <div className="row">
-          <Link className="btn btn-ghost btn-sm" href={`/performa?m=${r.prev}`}>Bulan sebelumnya</Link>
-          <Link className="btn btn-ghost btn-sm" href={`/performa?m=${r.next}`}>Bulan berikutnya</Link>
+          <Link className="btn btn-ghost btn-sm" href={qs({ m: r.prev, from: "", to: "" })}>Bulan sebelumnya</Link>
+          <Link className="btn btn-ghost btn-sm" href={qs({ m: r.next, from: "", to: "" })}>Bulan berikutnya</Link>
         </div>
       </div>
 
-      {rows.length === 0 ? (
-        <div className="panel empty"><strong>Belum ada data live bulan ini</strong>Data muncul setelah kamu mengisi <Link href="/live/baru">data live</Link>.</div>
+      <nav className="tabs-inline" aria-label="Tampilan performa">
+        <Link href={qs({ v: "" })} aria-current={view === "ringkasan" ? "page" : undefined}>Ringkasan</Link>
+        <Link href={qs({ v: "talent" })} aria-current={view === "talent" ? "page" : undefined}>Harian per talent</Link>
+        <Link href={qs({ v: "akun" })} aria-current={view === "akun" ? "page" : undefined}>Harian per aplikasi</Link>
+      </nav>
+
+      <form className="row" action="/admin/performa" style={{ marginBottom: 16 }}>
+        {sp.v && <input type="hidden" name="v" value={sp.v} />}
+        <label className="row small" style={{ gap: 6 }}>Dari <input type="date" name="from" defaultValue={r.start} required style={{ width: "auto" }} /></label>
+        <label className="row small" style={{ gap: 6 }}>Sampai <input type="date" name="to" defaultValue={r.end} required style={{ width: "auto" }} /></label>
+        <select name="a" defaultValue={sp.a ?? ""} aria-label="Akun" style={{ width: "auto" }}>
+          <option value="">Semua akun</option>
+          {(accounts ?? []).map((a) => <option key={a.code} value={a.code}>{a.name}</option>)}
+        </select>
+        <select name="t" defaultValue={sp.t ?? ""} aria-label="Talent" style={{ width: "auto" }}>
+          <option value="">Semua talent</option>
+          {(talents ?? []).map((t) => <option key={t.id} value={t.id}>{t.nickname}</option>)}
+        </select>
+        <button className="btn btn-ghost btn-sm" type="submit">Terapkan</button>
+      </form>
+
+      {view !== "ringkasan" ? (
+        <section className="panel flush">
+          <div className="band sky"><h2>{view === "talent" ? "Performa harian per talent" : "Performa harian per aplikasi"}</h2><span className="small">angka besar = tayangan TikTok</span></div>
+          <DailyMatrix
+            rows={rows}
+            keyOf={(x) => (view === "talent" ? x.talent_id : x.account_code)}
+            nameOf={(k) => (view === "talent" ? nick.get(k) ?? "?" : acc.get(k) ?? k)}
+          />
+          <p className="metric-note" style={{ padding: "0 20px 16px" }}>Setiap sel: total tayangan, durasi live, dan puncak penonton bersamaan di hari itu. Geser tabel ke samping di HP.</p>
+        </section>
+      ) : rows.length === 0 ? (
+        <div className="panel empty"><strong>Belum ada data live di periode ini</strong>Pilih bulan lain atau ubah filter.</div>
       ) : (
         <>
           <section className="panel">
             <div className="stats">
-              <div className="stat"><strong>{mine.sesi}</strong><span>Sesi live</span></div>
-              <div className="stat"><strong>{menitKeJam(mine.menit)}</strong><span>Total durasi</span></div>
-              <div className="stat"><strong>{fmtNum(mine.viewsPerHour)}</strong><span>Tayangan per jam</span></div>
-              <div className="stat"><strong>{fmtNum(mine.maxPeak)}</strong><span>Puncak penonton tertinggi</span></div>
+              <div className="stat"><strong>{total.sesi}</strong><span>Sesi live</span></div>
+              <div className="stat"><strong>{menitKeJam(total.menit)}</strong><span>Total durasi</span></div>
+              <div className="stat"><strong>{fmtNum(total.views)}</strong><span>Total tayangan TikTok</span></div>
+              <div className="stat"><strong>{fmtNum(total.viewsPerHour)}</strong><span>Tayangan per jam live</span></div>
+              <div className="stat"><strong>{fmtNum(total.maxPeak)}</strong><span>Puncak penonton tertinggi</span></div>
             </div>
+            <p className="metric-note">Tayangan per jam = total tayangan dibagi total jam live. Ini pembanding paling adil antar talent karena durasi live tiap orang berbeda.</p>
           </section>
 
           <section className="panel">
-            <h2 style={{ marginBottom: 6 }}>Dibanding rata-rata tim</h2>
-            <p className="small muted" style={{ marginBottom: 14 }}>Per akun live, karena tiap akun punya jumlah pengikut berbeda. Rata-rata tim mencakup semua talent di akun itu, termasuk kamu.</p>
+            <div className="panel-head"><h2>Tayangan per hari</h2><span className="small muted">Batang gelap = hari tertinggi</span></div>
+            <BarChart title="Tayangan TikTok per hari" data={days.map((d) => ({ label: dayLabel(d.date, r), value: d.views }))} />
+          </section>
+
+          <section className="panel">
+            <div className="panel-head"><h2>Per talent</h2><span className="small muted">Urut dari tayangan per jam tertinggi</span></div>
+            <PerfTable rows={perTalent} label="Talent" name={(k) => nick.get(k) ?? "?"} />
+          </section>
+
+          <section className="panel">
+            <h2 style={{ marginBottom: 14 }}>Per akun</h2>
+            <PerfTable rows={perAkun} label="Akun" name={(k) => acc.get(k) ?? k} />
+          </section>
+
+          <section className="panel">
+            <h2 style={{ marginBottom: 14 }}>10 sesi dengan tayangan tertinggi</h2>
             <div className="table-wrap"><table>
-              <thead><tr><th>Akun</th><th className="num">Sesi kamu</th><th>Tayangan per jam</th><th>Rata-rata puncak</th><th>Median tonton</th></tr></thead>
-              <tbody>{perAkun.map((a) => {
-                const t = team.get(a.key);
-                return (
-                  <tr key={a.key}>
-                    <td><strong>{acc.get(a.key) ?? a.key}</strong>{t && <div className="small muted">{t.talent_count} talent, {t.sesi} sesi</div>}</td>
-                    <td className="num">{a.sesi}</td>
-                    <td>{fmtNum(a.viewsPerHour)} <span className="small muted">vs {fmtNum(t?.views_per_hour)}</span><div className="small"><Delta v={delta(a.viewsPerHour, t?.views_per_hour ?? null)} /></div></td>
-                    <td>{fmtNum(a.avgPeak, 1)} <span className="small muted">vs {fmtNum(t?.avg_peak, 1)}</span><div className="small"><Delta v={delta(a.avgPeak, t?.avg_peak ?? null)} /></div></td>
-                    <td>{a.medianWatch === null ? "–" : `${fmtNum(a.medianWatch)} dtk`} <span className="small muted">vs {t?.avg_watch ? `${fmtNum(t.avg_watch)} dtk` : "–"}</span><div className="small"><Delta v={delta(a.medianWatch, t?.avg_watch ?? null)} /></div></td>
-                  </tr>
-                );
-              })}</tbody>
-            </table></div>
-          </section>
-
-          <section className="panel">
-            <div className="panel-head"><h2>Tayangan per hari</h2><span className="small muted">Batang gelap = hari terbaikmu</span></div>
-            <BarChart title="Tayangan TikTok per hari" data={daily(rows, r.start, r.end).map((d) => ({ label: d.date.slice(8), value: d.views }))} />
-          </section>
-
-          <section className="panel flush">
-            <div className="band sky"><h2>Performa harian</h2><span className="small">per aplikasi</span></div>
-            <DailyMatrix rows={rows} keyOf={(x) => x.account_code} nameOf={(k) => acc.get(k) ?? k} />
-          </section>
-
-          <section className="panel">
-            <h2 style={{ marginBottom: 14 }}>5 sesi terbaikmu</h2>
-            <div className="table-wrap"><table>
-              <thead><tr><th>Tanggal</th><th>Akun</th><th className="num">Durasi</th><th className="num">Tayangan</th><th className="num">Puncak</th><th>Materi</th></tr></thead>
-              <tbody>{best.map((s) => (
+              <thead><tr><th /><th>Tanggal</th><th>Talent</th><th>Akun</th><th className="num">Durasi</th><th className="num">Tayangan</th><th className="num">Puncak</th><th>Materi</th></tr></thead>
+              <tbody>{top.map((s, i) => (
                 <tr key={s.id}>
+                  <td className="rank">{i + 1}</td>
                   <td className="nw">{tanggalPendek(s.session_date)}<div className="small muted">{jam(s.started_at)}</div></td>
-                  <td>{acc.get(s.account_code)}</td><td className="num">{menitKeJam(s.duration_minutes)}</td>
-                  <td className="num">{fmtNum(s.total_views)}</td><td className="num">{fmtNum(s.peak_concurrent)}</td><td className="small">{s.topic ?? ""}</td>
+                  <td>{nick.get(s.talent_id ?? "") ?? "–"}</td><td>{acc.get(s.account_code)}</td>
+                  <td className="num">{menitKeJam(s.duration_minutes)}</td><td className="num">{fmtNum(s.total_views)}</td>
+                  <td className="num">{fmtNum(s.peak_concurrent)}</td><td className="small">{s.topic ?? ""}</td>
                 </tr>
               ))}</tbody>
             </table></div>
-            <p className="metric-note">Materi di sesi terbaik bisa jadi ide untuk live berikutnya.</p>
           </section>
         </>
       )}
-      {promoOn && <section className="panel" style={{ marginTop: 16 }}>
-        <h2 style={{ marginBottom: 6 }}>Kode promo kamu</h2>
-        <p className="small muted" style={{ marginBottom: 14 }}>{(myCodes ?? []).filter((c) => c.is_active).map((c) => c.code).join(", ") || "Belum ada kode promo."}</p>
-        {promo.length === 0 ? <p className="muted">Belum ada penjualan dari kode kamu di {r.label}, atau data dari Centil belum masuk.</p> : (
-          <div className="table-wrap"><table>
-            <thead><tr><th>Kode</th><th className="num">Transaksi</th><th className="num">Pembeli</th><th className="num key">Revenue</th></tr></thead>
-            <tbody>{promo.map((p) => <tr key={p.key}><td><strong>{p.key}</strong></td><td className="num">{fmtNum(p.trx)}</td><td className="num">{fmtNum(p.buyers)}</td><td className="num key">{rupiah(p.revenue)}</td></tr>)}</tbody>
-          </table></div>
-        )}
-      </section>}
     </>
   );
 }
