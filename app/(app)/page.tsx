@@ -1,3 +1,4 @@
+// Lokasi di GitHub: app/(app)/page.tsx
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getMe } from "@/lib/auth";
@@ -15,7 +16,7 @@ type Att = {
 };
 const STATUS: Record<string, string> = { terjadwal: "Terjadwal", hadir: "Hadir", izin: "Izin", alpha: "Tidak hadir", telat: "Telat" };
 
-export default async function Beranda({ searchParams }: { searchParams: Promise<{ ok?: string; e?: string }> }) {
+export default async function Beranda({ searchParams }: { searchParams: Promise<{ ok?: string; e?: string; sim?: string }> }) {
   const me = await getMe();
   if (me.role === "admin") redirect("/admin");
   const sp = await searchParams;
@@ -62,8 +63,22 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
   const menit = (pay ?? []).reduce((a, p) => a + (p.live_minutes ?? 0), 0);
   const gaji = (pay ?? []).reduce((a, p) => a + Number(p.amount ?? 0), 0);
 
+  // Simulasi absen (khusus admin di mode akun bayangan): hanya tampilan, tidak menyimpan apa pun
+  const sim = me.impersonating && ["buka", "live", "selesai"].includes(sp.sim ?? "") ? (sp.sim as "buka" | "live" | "selesai") : null;
+  const hf: Att | undefined = sim
+    ? focus ?? {
+        slot_id: "simulasi", account_code: rest[0]?.account_code ?? todays[0]?.account_code ?? slots[0]?.account_code ?? "JADIASN",
+        slot_date: today, start_at: new Date(now - 15 * 60_000).toISOString(), end_at: new Date(now + 225 * 60_000).toISOString(),
+        is_event: false, state: "terjadwal", jam_absen: null, check_in_source: null, live_minutes: 0, session_count: 0,
+      }
+    : focus;
+  const simC = sim === "live" ? { checked_in_at: new Date(now - 5 * 60_000).toISOString(), checked_out_at: null as string | null }
+    : sim === "selesai" ? { checked_in_at: new Date(now - 125 * 60_000).toISOString(), checked_out_at: new Date(now).toISOString() as string | null }
+    : undefined;
+
+  const nickOfMe = () => me.nickname ?? "Talent ini";
   let hero: React.ReactNode;
-  if (!focus) {
+  if (!hf) {
     hero = (
       <section className="hero is-done">
         <span className="blob" aria-hidden />
@@ -74,9 +89,9 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
       </section>
     );
   } else {
-    const start = new Date(focus.start_at).getTime();
-    const inWindow = now >= start - 60 * 60_000;
-    const c = ci.get(focus.slot_id);
+    const start = new Date(hf.start_at).getTime();
+    const inWindow = sim ? true : now >= start - 60 * 60_000;
+    const c = sim ? simC : ci.get(hf.slot_id);
     const onAir = c && !c.checked_out_at;
     const done = c?.checked_out_at;
     hero = (
@@ -86,36 +101,44 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
           : done ? <span className="badge badge-hadir">Selesai {jam(done)}</span>
           : inWindow ? <span className="badge badge-live">Slot dibuka</span>
           : <span className="badge">Nanti</span>}
-        <div className="acc">{accName(focus.account_code)}</div>
-        <div className="time">{jam(focus.start_at)}–{jam(focus.end_at)}{focus.is_event ? ", event" : ""}</div>
-        {(roomOf(focus.account_code).room || roomOf(focus.account_code).device) && (
+        <div className="acc">{accName(hf.account_code)}</div>
+        <div className="time">{jam(hf.start_at)}–{jam(hf.end_at)}{hf.is_event ? ", event" : ""}</div>
+        {(roomOf(hf.account_code).room || roomOf(hf.account_code).device) && (
           <div className="row" style={{ marginTop: 10, gap: 8 }}>
-            {roomOf(focus.account_code).room && <span className="room-pill">Ruang: {roomOf(focus.account_code).room}</span>}
-            {roomOf(focus.account_code).device && <span className="room-pill">{roomOf(focus.account_code).device}</span>}
+            {roomOf(hf.account_code).room && <span className="room-pill">Ruang: {roomOf(hf.account_code).room}</span>}
+            {roomOf(hf.account_code).device && <span className="room-pill">{roomOf(hf.account_code).device}</span>}
           </div>
         )}
-        {focus.session_count > 0 && <p className="meta"><strong>{focus.session_count} data live tercatat</strong>, total {menitKeJam(focus.live_minutes)}. Masih live lagi? Tambahkan datanya.</p>}
-        {focus.jam_absen && <p className="meta">Absen pukul {focus.jam_absen}{focus.check_in_source === "data_live" ? " (dari data live)" : ""}</p>}
+        {hf.session_count > 0 && <p className="meta"><strong>{hf.session_count} data live tercatat</strong>, total {menitKeJam(hf.live_minutes)}. Masih live lagi? Tambahkan datanya.</p>}
+        {sim && c && <p className="meta">Absen pukul {jam(c.checked_in_at)}</p>}
+        {!sim && hf.jam_absen && <p className="meta">Absen pukul {hf.jam_absen}{hf.check_in_source === "data_live" ? " (dari data live)" : ""}</p>}
 
         {inWindow && !c && (
+          sim ? (
+            <div>
+              <Link className="tally" href="/?sim=live" style={{ textDecoration: "none" }}><span className="tally-lamp" aria-hidden />Absen sekarang</Link>
+              <p className="tally-hint">Jam dicatat otomatis saat tombol ditekan</p>
+            </div>
+          ) : (
           <form action={absen}>
-            <input type="hidden" name="slot_id" value={focus.slot_id} />
+            <input type="hidden" name="slot_id" value={hf.slot_id} />
             <button className="tally" type="submit"><span className="tally-lamp" aria-hidden />Absen sekarang</button>
             <p className="tally-hint">Jam dicatat otomatis saat tombol ditekan</p>
           </form>
+          )
         )}
         {!inWindow && !c && <p className="meta">Tombol absen muncul pukul {jam(new Date(start - 60 * 60_000).toISOString())}.</p>}
         {onAir && (
           <>
             <div className="onair"><span className="dot" aria-hidden />Absen {jam(c!.checked_in_at)}. Tekan Selesai live setelah selesai.</div>
             <form action={selesaiLive} className="row" style={{ marginTop: 12 }}>
-              <input type="hidden" name="slot_id" value={focus.slot_id} />
-              <button className="btn" type="submit">Selesai live</button>
-              <Link className="btn btn-ghost" href={`/live/baru?akun=${focus.account_code}&tgl=${focus.slot_date}`}>{focus.session_count > 0 ? "Tambah data live" : "Isi data live"}</Link>
+              <input type="hidden" name="slot_id" value={hf.slot_id} />
+              {sim ? <Link className="btn" href="/?sim=selesai">Selesai live</Link> : <button className="btn" type="submit">Selesai live</button>}
+              <Link className="btn btn-ghost" href={`/live/baru?akun=${hf.account_code}&tgl=${hf.slot_date}${hf.session_count === 0 && hf.jam_absen ? `&jam=${hf.jam_absen}` : ""}`}>{hf.session_count > 0 ? "Tambah data live" : "Isi data live"}</Link>
             </form>
           </>
         )}
-        {done && <Link className="btn" href={`/live/baru?akun=${focus.account_code}&tgl=${focus.slot_date}`} style={{ marginTop: 14 }}>{focus.session_count > 0 ? "Tambah data live" : "Isi data live"}</Link>}
+        {done && <Link className="btn" href={`/live/baru?akun=${hf.account_code}&tgl=${hf.slot_date}${hf.session_count === 0 && hf.jam_absen ? `&jam=${hf.jam_absen}` : ""}`} style={{ marginTop: 14 }}>{hf.session_count > 0 ? "Tambah data live" : "Isi data live"}</Link>}
       </section>
     );
   }
@@ -127,6 +150,18 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
         <span className="sticker">{todays.length} slot hari ini</span>
       </div>
       <Notice ok={sp.ok} e={sp.e} />
+      {me.impersonating && (
+        <section className="panel" style={{ marginBottom: 18 }}>
+          <div className="panel-head"><h2>Simulasi absen</h2><span className="small muted">hanya tampilan, tidak ada yang tersimpan</span></div>
+          <nav className="tabs-inline" aria-label="Simulasi absen" style={{ marginBottom: 0 }}>
+            <Link href="/" aria-current={!sim ? "page" : undefined}>Kondisi asli</Link>
+            <Link href="/?sim=buka" aria-current={sim === "buka" ? "page" : undefined}>1. Slot dibuka</Link>
+            <Link href="/?sim=live" aria-current={sim === "live" ? "page" : undefined}>2. Setelah absen</Link>
+            <Link href="/?sim=selesai" aria-current={sim === "selesai" ? "page" : undefined}>3. Setelah selesai</Link>
+          </nav>
+          {sim && !focus && <p className="metric-note">{nickOfMe()} tidak punya slot yang masih berjalan hari ini, jadi dipakai slot contoh.</p>}
+        </section>
+      )}
       {hero}
 
       {!onAirAny && (
