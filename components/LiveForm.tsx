@@ -1,13 +1,16 @@
+// Lokasi di GitHub: components/LiveForm.tsx
+import { LiveGuard, type GuardData } from "@/components/LiveGuard";
 import { simpanLive } from "@/app/(app)/actions";
 import { hariIni } from "@/lib/time";
 
 type Opt = { value: string; label: string };
 
-export type LiveDefaults = { account?: string; platform?: string; date?: string; talent?: string };
+export type LiveDefaults = { account?: string; platform?: string; date?: string; talent?: string; time?: string };
 
-export function LiveForm({ accounts, talents, from, defaults = {} }: { accounts: Opt[]; talents?: Opt[]; from: string; defaults?: LiveDefaults }) {
+export function LiveForm({ accounts, talents, from, defaults = {}, guard }: { accounts: Opt[]; talents?: Opt[]; from: string; defaults?: LiveDefaults; guard?: GuardData }) {
   return (
     <form action={simpanLive} className="form">
+      <LiveGuard data={guard} />
       <input type="hidden" name="from" value={from} />
       <fieldset>
         <legend>Sesi live</legend>
@@ -41,7 +44,7 @@ export function LiveForm({ accounts, talents, from, defaults = {} }: { accounts:
           </div>
           <div className="field">
             <label htmlFor="start_time">Jam mulai (WIB)</label>
-            <input id="start_time" name="start_time" type="time" required />
+            <input id="start_time" name="start_time" type="time" required autoComplete="off" defaultValue={defaults.time ?? ""} />
           </div>
           <div className="field">
             <label htmlFor="duration_minutes">Durasi (menit)</label>
